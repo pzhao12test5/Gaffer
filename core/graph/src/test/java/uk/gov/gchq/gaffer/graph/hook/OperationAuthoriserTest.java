@@ -24,13 +24,15 @@ import uk.gov.gchq.gaffer.operation.OperationChain;
 import uk.gov.gchq.gaffer.operation.OperationException;
 import uk.gov.gchq.gaffer.operation.impl.generate.GenerateObjects;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAdjacentEntitySeeds;
-import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedElements;
+import uk.gov.gchq.gaffer.operation.impl.get.GetElements;
 import uk.gov.gchq.gaffer.user.User;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 
 public class OperationAuthoriserTest {
@@ -80,7 +82,7 @@ public class OperationAuthoriserTest {
         final OperationAuthoriser opAuthoriser = new OperationAuthoriser(StreamUtil.opAuths(getClass()));
         final OperationChain opChain = new OperationChain.Builder()
                 .first(new GetAdjacentEntitySeeds())
-                .then(new GetRelatedElements())
+                .then(new GetElements())
                 .build();
 
         final User user = new User();
@@ -100,7 +102,7 @@ public class OperationAuthoriserTest {
         final OperationAuthoriser opAuthoriser = new OperationAuthoriser(StreamUtil.opAuths(getClass()));
         final OperationChain opChain = new OperationChain.Builder()
                 .first(new GetAdjacentEntitySeeds())
-                .then(new GetRelatedElements())
+                .then(new GetElements())
                 .build();
 
         final User user = new User.Builder()
@@ -127,5 +129,24 @@ public class OperationAuthoriserTest {
         // Then
         assertThat(allOpAuths,
                 IsCollectionContaining.hasItems("User", "ReadUser", "WriteUser", "SuperUser", "AdminUser"));
+    }
+
+    @Test
+    public void shouldReturnResultWithoutModification() {
+        // Given
+        final OperationAuthoriser opAuthoriser = new OperationAuthoriser(StreamUtil.opAuths(getClass()));
+        final Object result = mock(Object.class);
+        final OperationChain opChain = new OperationChain.Builder()
+                .first(new GenerateObjects<>())
+                .build();
+        final User user = new User.Builder()
+                .opAuths("NoScore")
+                .build();
+
+        // When
+        final Object returnedResult = opAuthoriser.postExecute(result, opChain, user);
+
+        // Then
+        assertSame(result, returnedResult);
     }
 }

@@ -17,11 +17,14 @@
 package uk.gov.gchq.gaffer.operation;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import uk.gov.gchq.gaffer.commonutil.iterable.CloseableIterable;
 import uk.gov.gchq.gaffer.commonutil.iterable.WrappedCloseableIterable;
 import uk.gov.gchq.gaffer.data.element.Edge;
 import uk.gov.gchq.gaffer.data.element.Entity;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.View;
+import uk.gov.gchq.gaffer.operation.serialisation.TypeReferenceImpl;
 
 public abstract class AbstractGetIterableElementsOperation<SEED_TYPE, RESULT_TYPE>
         extends AbstractGetIterableOperation<SEED_TYPE, RESULT_TYPE> implements GetIterableElementsOperation<SEED_TYPE, RESULT_TYPE> {
@@ -63,6 +66,7 @@ public abstract class AbstractGetIterableElementsOperation<SEED_TYPE, RESULT_TYP
         setSeedMatching(operation.getSeedMatching());
     }
 
+
     /**
      * @param seedMatching a {@link SeedMatchingType} describing how the seeds should be
      *                     matched to the identifiers in the graph.
@@ -81,6 +85,12 @@ public abstract class AbstractGetIterableElementsOperation<SEED_TYPE, RESULT_TYP
     @Override
     public CloseableIterable<SEED_TYPE> getInput() {
         return super.getInput();
+    }
+
+    @JsonProperty
+    @Override
+    public void setInput(final CloseableIterable<SEED_TYPE> input) {
+        super.setInput(input);
     }
 
     @Override
@@ -141,6 +151,11 @@ public abstract class AbstractGetIterableElementsOperation<SEED_TYPE, RESULT_TYP
     @Override
     public void setPopulateProperties(final boolean populateProperties) {
         this.populateProperties = populateProperties;
+    }
+
+    @Override
+    protected TypeReference createOutputTypeReference() {
+        return new TypeReferenceImpl.CloseableIterableElement();
     }
 
     public abstract static class BaseBuilder<
@@ -208,6 +223,12 @@ public abstract class AbstractGetIterableElementsOperation<SEED_TYPE, RESULT_TYP
             op.setPopulateProperties(populateProperties);
             return self();
         }
+
+        public CHILD_CLASS seedMatching(final SeedMatchingType seedMatching) {
+            op.setSeedMatching(seedMatching);
+            return self();
+        }
+
     }
 
     public static final class Builder<OP_TYPE extends AbstractGetIterableElementsOperation<SEED_TYPE, RESULT_TYPE>, SEED_TYPE, RESULT_TYPE>

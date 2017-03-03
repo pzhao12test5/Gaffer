@@ -19,10 +19,10 @@ package uk.gov.gchq.gaffer.example.films.serialiser;
 import uk.gov.gchq.gaffer.commonutil.CommonConstants;
 import uk.gov.gchq.gaffer.example.films.data.Certificate;
 import uk.gov.gchq.gaffer.exception.SerialisationException;
-import uk.gov.gchq.gaffer.serialisation.AbstractSerialisation;
+import uk.gov.gchq.gaffer.serialisation.Serialisation;
 import java.io.UnsupportedEncodingException;
 
-public class CertificateVisibilitySerialiser extends AbstractSerialisation<Certificate> {
+public class CertificateVisibilitySerialiser implements Serialisation<Certificate> {
     private static final long serialVersionUID = -1726585921080420988L;
 
     @Override
@@ -58,7 +58,7 @@ public class CertificateVisibilitySerialiser extends AbstractSerialisation<Certi
     }
 
     @Override
-    public boolean isByteOrderPreserved() {
+    public boolean preservesObjectOrdering() {
         return true;
     }
 }

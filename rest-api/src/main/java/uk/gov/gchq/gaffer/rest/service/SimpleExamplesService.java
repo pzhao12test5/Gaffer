@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Crown Copyright
+ * Copyright 2016-2017 Crown Copyright
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import uk.gov.gchq.gaffer.data.element.Element;
 import uk.gov.gchq.gaffer.data.element.Entity;
 import uk.gov.gchq.gaffer.data.element.IdentifierType;
 import uk.gov.gchq.gaffer.data.element.function.ElementFilter;
-import uk.gov.gchq.gaffer.data.element.function.ElementTransformer;
+import uk.gov.gchq.gaffer.data.elementdefinition.view.GlobalViewElementDefinition;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.View;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.ViewElementDefinition;
 import uk.gov.gchq.gaffer.operation.GetOperation;
@@ -37,17 +37,13 @@ import uk.gov.gchq.gaffer.operation.impl.get.GetAdjacentEntitySeeds;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllEdges;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllElements;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllEntities;
-import uk.gov.gchq.gaffer.operation.impl.get.GetEdgesBySeed;
-import uk.gov.gchq.gaffer.operation.impl.get.GetElementsBySeed;
-import uk.gov.gchq.gaffer.operation.impl.get.GetEntitiesBySeed;
-import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedEdges;
-import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedElements;
-import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedEntities;
+import uk.gov.gchq.gaffer.operation.impl.get.GetEdges;
+import uk.gov.gchq.gaffer.operation.impl.get.GetElements;
+import uk.gov.gchq.gaffer.operation.impl.get.GetEntities;
 import uk.gov.gchq.gaffer.rest.GraphFactory;
 import uk.gov.gchq.gaffer.rest.example.ExampleDomainObject;
 import uk.gov.gchq.gaffer.rest.example.ExampleDomainObjectGenerator;
 import uk.gov.gchq.gaffer.rest.example.ExampleFilterFunction;
-import uk.gov.gchq.gaffer.rest.example.ExampleTransformFunction;
 import uk.gov.gchq.gaffer.store.schema.Schema;
 import uk.gov.gchq.gaffer.store.schema.SchemaEdgeDefinition;
 import uk.gov.gchq.gaffer.store.schema.SchemaElementDefinition;
@@ -75,18 +71,20 @@ public class SimpleExamplesService implements IExamplesService {
 
     @Override
     public OperationChain execute() {
-        final AddElements addElements = addElements();
-        // delete the example elements as these are generated from the generate elements op
-        addElements.setElements(null);
         return new OperationChain.Builder()
-                .first(generateElements())
-                .then(addElements)
+                .first(getAdjacentEntitySeeds())
+                .then(new GetEdges<EntitySeed>())
                 .build();
     }
 
     @Override
-    public GetElementsBySeed<ElementSeed, Element> getElementsBySeed() {
-        final GetElementsBySeed<ElementSeed, Element> op = new GetElementsBySeed<>();
+    public OperationChain executeChunked() {
+        return execute();
+    }
+
+    @Override
+    public GetElements<ElementSeed, Element> getElementsBySeed() {
+        final GetElements<ElementSeed, Element> op = new GetElements<>();
         final List<ElementSeed> seeds = new ArrayList<>();
         if (hasEntities()) {
             seeds.add(getEntitySeed(1));
@@ -102,8 +100,8 @@ public class SimpleExamplesService implements IExamplesService {
     }
 
     @Override
-    public GetRelatedElements<ElementSeed, Element> getRelatedElements() {
-        final GetRelatedElements<ElementSeed, Element> op = new GetRelatedElements<>();
+    public GetElements<ElementSeed, Element> getRelatedElements() {
+        final GetElements<ElementSeed, Element> op = new GetElements<>();
         final List<ElementSeed> seeds = new ArrayList<>();
         if (hasEntities()) {
             seeds.add(getEntitySeed(1));
@@ -121,8 +119,8 @@ public class SimpleExamplesService implements IExamplesService {
     }
 
     @Override
-    public GetEntitiesBySeed getEntitiesBySeed() {
-        final GetEntitiesBySeed op = new GetEntitiesBySeed();
+    public GetEntities getEntitiesBySeed() {
+        final GetEntities op = new GetEntities<>();
         if (hasEntities()) {
             op.setSeeds(Collections.singletonList(getEntitySeed(1)));
         }
@@ -131,8 +129,8 @@ public class SimpleExamplesService implements IExamplesService {
     }
 
     @Override
-    public GetRelatedEntities getRelatedEntities() {
-        final GetRelatedEntities op = new GetRelatedEntities();
+    public GetEntities getRelatedEntities() {
+        final GetEntities op = new GetEntities();
         final List<ElementSeed> seeds = new ArrayList<>();
         if (hasEntities()) {
             seeds.add(getEntitySeed(1));
@@ -148,8 +146,8 @@ public class SimpleExamplesService implements IExamplesService {
     }
 
     @Override
-    public GetEdgesBySeed getEdgesBySeed() {
-        final GetEdgesBySeed op = new GetEdgesBySeed();
+    public GetEdges getEdgesBySeed() {
+        final GetEdges op = new GetEdges();
         if (hasEdges()) {
             op.setSeeds(Collections.singletonList(getEdgeSeed(1, 2)));
         }
@@ -158,8 +156,8 @@ public class SimpleExamplesService implements IExamplesService {
     }
 
     @Override
-    public GetRelatedEdges getRelatedEdges() {
-        final GetRelatedEdges op = new GetRelatedEdges();
+    public GetEdges getRelatedEdges() {
+        final GetEdges op = new GetEdges();
         final List<ElementSeed> seeds = new ArrayList<>();
         if (hasEntities()) {
             seeds.add(getEntitySeed(1));
@@ -208,6 +206,61 @@ public class SimpleExamplesService implements IExamplesService {
     @Override
     public GetAllEdges getAllEdges() {
         final GetAllEdges op = new GetAllEdges();
+        populateOperation(op);
+        return op;
+    }
+
+    @Override
+    public GetElements getElements() {
+        final GetElements<ElementSeed, Element> op = new GetElements<>();
+        final List<ElementSeed> seeds = new ArrayList<>();
+        if (hasEntities()) {
+            seeds.add(getEntitySeed(1));
+        } else if (hasEdges()) {
+            seeds.add(new EntitySeed(getEdgeSeed(1, 2).getSource()));
+        }
+
+        if (hasEdges()) {
+            seeds.add(getEdgeSeed(1, 2));
+        }
+
+        op.setSeeds(seeds);
+        populateOperation(op);
+        return op;
+    }
+
+    @Override
+    public GetEntities getEntities() {
+        final GetEntities op = new GetEntities();
+        final List<ElementSeed> seeds = new ArrayList<>();
+        if (hasEntities()) {
+            seeds.add(getEntitySeed(1));
+        }
+
+        if (hasEdges()) {
+            seeds.add(getEdgeSeed(1, 2));
+        }
+
+        op.setSeeds(seeds);
+        populateOperation(op);
+        return op;
+    }
+
+    @Override
+    public GetEdges getEdges() {
+        final GetEdges op = new GetEdges();
+        final List<ElementSeed> seeds = new ArrayList<>();
+        if (hasEntities()) {
+            seeds.add(getEntitySeed(1));
+        } else if (hasEdges()) {
+            seeds.add(new EntitySeed(getEdgeSeed(1, 2).getSource()));
+        }
+
+        if (hasEdges()) {
+            seeds.add(getEdgeSeed(1, 2));
+        }
+
+        op.setSeeds(seeds);
         populateOperation(op);
         return op;
     }
@@ -292,15 +345,9 @@ public class SimpleExamplesService implements IExamplesService {
                 viewElement = new ViewElementDefinition();
             } else {
                 viewElement = new ViewElementDefinition.Builder()
-                        .transientProperty(TRANSFORMED_PROPERTIES, String.class)
                         .preAggregationFilter(new ElementFilter.Builder()
                                 .select(getAnEntityPropertyName())
                                 .execute(new ExampleFilterFunction())
-                                .build())
-                        .transformer(new ElementTransformer.Builder()
-                                .select(getAnEntityPropertyName())
-                                .execute(new ExampleTransformFunction())
-                                .project(TRANSFORMED_PROPERTIES)
                                 .build())
                         .build();
             }
@@ -313,20 +360,18 @@ public class SimpleExamplesService implements IExamplesService {
                 viewElement = new ViewElementDefinition();
             } else {
                 viewElement = new ViewElementDefinition.Builder()
-                        .transientProperty(TRANSFORMED_PROPERTIES, String.class)
                         .preAggregationFilter(new ElementFilter.Builder()
                                 .select(getAnEdgePropertyName())
                                 .execute(new ExampleFilterFunction())
-                                .build())
-                        .transformer(new ElementTransformer.Builder()
-                                .select(getAnEdgePropertyName())
-                                .execute(new ExampleTransformFunction())
-                                .project(TRANSFORMED_PROPERTIES)
                                 .build())
                         .build();
             }
             viewBuilder.edge(getAnEdgeGroup(), viewElement);
         }
+
+        viewBuilder.globalElements(new GlobalViewElementDefinition.Builder()
+                .groupBy()
+                .build());
 
         return viewBuilder;
     }

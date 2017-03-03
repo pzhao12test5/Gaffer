@@ -25,7 +25,7 @@ import java.io.UnsupportedEncodingException;
  * instead.
  */
 @Deprecated
-public class LongSerialiser extends AbstractSerialisation<Long> {
+public class LongSerialiser implements Serialisation<Long> {
     private static final long serialVersionUID = 5647756843689779437L;
 
     @Override
@@ -57,7 +57,7 @@ public class LongSerialiser extends AbstractSerialisation<Long> {
     }
 
     @Override
-    public boolean isByteOrderPreserved() {
+    public boolean preservesObjectOrdering() {
         return true;
     }
 }

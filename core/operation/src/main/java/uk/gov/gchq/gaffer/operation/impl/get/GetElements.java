@@ -16,12 +16,17 @@
 
 package uk.gov.gchq.gaffer.operation.impl.get;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.gov.gchq.gaffer.commonutil.iterable.CloseableIterable;
 import uk.gov.gchq.gaffer.data.element.Element;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.View;
 import uk.gov.gchq.gaffer.operation.AbstractGetIterableElementsOperation;
 import uk.gov.gchq.gaffer.operation.GetIterableElementsOperation;
 import uk.gov.gchq.gaffer.operation.data.ElementSeed;
+import java.util.List;
 
 /**
  * Restricts {@link uk.gov.gchq.gaffer.operation.AbstractGetOperation} to take {@link uk.gov.gchq.gaffer.operation.data.ElementSeed}s as
@@ -32,7 +37,7 @@ import uk.gov.gchq.gaffer.operation.data.ElementSeed;
  * @param <ELEMENT_TYPE> the element return type
  * @see uk.gov.gchq.gaffer.operation.GetOperation
  */
-public abstract class GetElements<SEED_TYPE extends ElementSeed, ELEMENT_TYPE extends Element>
+public class GetElements<SEED_TYPE extends ElementSeed, ELEMENT_TYPE extends Element>
         extends AbstractGetIterableElementsOperation<SEED_TYPE, ELEMENT_TYPE> {
     public GetElements() {
         super();
@@ -66,6 +71,20 @@ public abstract class GetElements<SEED_TYPE extends ElementSeed, ELEMENT_TYPE ex
         super.setSeedMatching(seedMatching);
     }
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "class")
+    @JsonGetter(value = "seeds")
+    @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS", justification = "if the iterable is null then the array should be null")
+    @Override
+    public SEED_TYPE[] getSeedArray() {
+        final CloseableIterable<SEED_TYPE> input = getInput();
+        if (null != input) {
+            final List<SEED_TYPE> inputList = Lists.newArrayList(input);
+            return (SEED_TYPE[]) inputList.toArray(new ElementSeed[inputList.size()]);
+        }
+
+        return null;
+    }
+
     public abstract static class BaseBuilder<OP_TYPE extends GetElements<SEED_TYPE, ELEMENT_TYPE>,
             SEED_TYPE extends ElementSeed,
             ELEMENT_TYPE extends Element,
@@ -74,19 +93,25 @@ public abstract class GetElements<SEED_TYPE extends ElementSeed, ELEMENT_TYPE ex
         protected BaseBuilder(final OP_TYPE op) {
             super(op);
         }
+
+        protected BaseBuilder() {
+            super((OP_TYPE) new GetElements<SEED_TYPE, ELEMENT_TYPE>());
+        }
     }
 
-    public static final class Builder<OP_TYPE extends GetElements<SEED_TYPE, ELEMENT_TYPE>,
-            SEED_TYPE extends ElementSeed,
-            ELEMENT_TYPE extends Element>
-            extends BaseBuilder<OP_TYPE, SEED_TYPE, ELEMENT_TYPE, Builder<OP_TYPE, SEED_TYPE, ELEMENT_TYPE>> {
+    public static final class Builder<SEED_TYPE extends ElementSeed, ELEMENT_TYPE extends Element>
+            extends BaseBuilder<GetElements<SEED_TYPE, ELEMENT_TYPE>, SEED_TYPE, ELEMENT_TYPE, Builder<SEED_TYPE, ELEMENT_TYPE>> {
 
-        protected Builder(final OP_TYPE op) {
+        public Builder() {
+            super(new GetElements<SEED_TYPE, ELEMENT_TYPE>());
+        }
+
+        public Builder(final GetElements<SEED_TYPE, ELEMENT_TYPE> op) {
             super(op);
         }
 
         @Override
-        protected Builder<OP_TYPE, SEED_TYPE, ELEMENT_TYPE> self() {
+        protected Builder<SEED_TYPE, ELEMENT_TYPE> self() {
             return this;
         }
     }

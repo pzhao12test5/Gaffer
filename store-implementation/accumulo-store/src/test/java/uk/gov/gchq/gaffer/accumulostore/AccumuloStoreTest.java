@@ -58,8 +58,6 @@ import uk.gov.gchq.gaffer.operation.impl.add.AddElements;
 import uk.gov.gchq.gaffer.operation.impl.generate.GenerateElements;
 import uk.gov.gchq.gaffer.operation.impl.generate.GenerateObjects;
 import uk.gov.gchq.gaffer.operation.impl.get.GetElements;
-import uk.gov.gchq.gaffer.operation.impl.get.GetElementsBySeed;
-import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedElements;
 import uk.gov.gchq.gaffer.store.StoreException;
 import uk.gov.gchq.gaffer.store.StoreTrait;
 import uk.gov.gchq.gaffer.store.operation.handler.OperationHandler;
@@ -77,11 +75,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static uk.gov.gchq.gaffer.store.StoreTrait.AGGREGATION;
 import static uk.gov.gchq.gaffer.store.StoreTrait.ORDERED;
 import static uk.gov.gchq.gaffer.store.StoreTrait.POST_AGGREGATION_FILTERING;
 import static uk.gov.gchq.gaffer.store.StoreTrait.POST_TRANSFORMATION_FILTERING;
 import static uk.gov.gchq.gaffer.store.StoreTrait.PRE_AGGREGATION_FILTERING;
+import static uk.gov.gchq.gaffer.store.StoreTrait.QUERY_AGGREGATION;
+import static uk.gov.gchq.gaffer.store.StoreTrait.STORE_AGGREGATION;
 import static uk.gov.gchq.gaffer.store.StoreTrait.STORE_VALIDATION;
 import static uk.gov.gchq.gaffer.store.StoreTrait.TRANSFORMATION;
 import static uk.gov.gchq.gaffer.store.StoreTrait.VISIBILITY;
@@ -143,7 +142,7 @@ public class AccumuloStoreTest {
 
         final EntitySeed entitySeed1 = new EntitySeed("1");
 
-        final GetElements<EntitySeed, Element> getBySeed = new GetElementsBySeed.Builder<EntitySeed, Element>()
+        final GetElements<EntitySeed, Element> getBySeed = new GetElements.Builder<EntitySeed, Element>()
                 .view(new View.Builder()
                         .entity(TestGroups.ENTITY)
                         .build())
@@ -154,7 +153,7 @@ public class AccumuloStoreTest {
         assertEquals(1, Iterables.size(results));
         assertThat(results, IsCollectionContaining.hasItem(e));
 
-        final GetRelatedElements<EntitySeed, Element> getRelated = new GetRelatedElements.Builder<EntitySeed, Element>()
+        final GetElements<EntitySeed, Element> getRelated = new GetElements.Builder<EntitySeed, Element>()
                 .view(new View.Builder()
                         .entity(TestGroups.ENTITY)
                         .build())
@@ -164,19 +163,19 @@ public class AccumuloStoreTest {
         assertEquals(1, Iterables.size(relatedResults));
         assertThat(relatedResults, IsCollectionContaining.hasItem(e));
 
-        final GetRelatedElements<EntitySeed, Element> getRelatedWithPostAggregationFilter = new GetRelatedElements.Builder<EntitySeed, Element>()
+        final GetElements<EntitySeed, Element> getRelatedWithPostAggregationFilter = new GetElements.Builder<EntitySeed, Element>()
                 .view(new View.Builder()
-                    .entity(TestGroups.ENTITY, new ViewElementDefinition.Builder()
-                            .preAggregationFilter(new ElementFilter.Builder()
-                                    .select(TestPropertyNames.PROP_1)
-                                    .execute(new IsMoreThan(0))
-                                    .build())
-                            .postAggregationFilter(new ElementFilter.Builder()
-                                    .select(TestPropertyNames.COUNT)
-                                    .execute(new IsMoreThan(6))
-                                    .build())
-                            .build())
-                .build())
+                        .entity(TestGroups.ENTITY, new ViewElementDefinition.Builder()
+                                .preAggregationFilter(new ElementFilter.Builder()
+                                        .select(TestPropertyNames.PROP_1)
+                                        .execute(new IsMoreThan(0))
+                                        .build())
+                                .postAggregationFilter(new ElementFilter.Builder()
+                                        .select(TestPropertyNames.COUNT)
+                                        .execute(new IsMoreThan(6))
+                                        .build())
+                                .build())
+                        .build())
                 .addSeed(entitySeed1)
                 .build();
         relatedResults = store.execute(getRelatedWithPostAggregationFilter, user);
@@ -242,8 +241,9 @@ public class AccumuloStoreTest {
     public void testStoreTraits(AccumuloStore store) {
         final Collection<StoreTrait> traits = store.getTraits();
         assertNotNull(traits);
-        assertTrue("Collection size should be 8", traits.size() == 8);
-        assertTrue("Collection should contain AGGREGATION trait", traits.contains(AGGREGATION));
+        assertTrue("Collection size should be 8", traits.size() == 9);
+        assertTrue("Collection should contain STORE_AGGREGATION trait", traits.contains(STORE_AGGREGATION));
+        assertTrue("Collection should contain QUERY_AGGREGATION trait", traits.contains(QUERY_AGGREGATION));
         assertTrue("Collection should contain PRE_AGGREGATION_FILTERING trait", traits.contains(PRE_AGGREGATION_FILTERING));
         assertTrue("Collection should contain POST_AGGREGATION_FILTERING trait", traits.contains(POST_AGGREGATION_FILTERING));
         assertTrue("Collection should contain TRANSFORMATION trait", traits.contains(TRANSFORMATION));

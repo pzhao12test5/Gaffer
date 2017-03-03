@@ -44,9 +44,11 @@ import uk.gov.gchq.gaffer.operation.impl.get.GetAdjacentEntitySeeds;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllEdges;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllElements;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllEntities;
+import uk.gov.gchq.gaffer.operation.impl.get.GetEdges;
 import uk.gov.gchq.gaffer.operation.impl.get.GetEdgesBySeed;
 import uk.gov.gchq.gaffer.operation.impl.get.GetElements;
 import uk.gov.gchq.gaffer.operation.impl.get.GetElementsBySeed;
+import uk.gov.gchq.gaffer.operation.impl.get.GetEntities;
 import uk.gov.gchq.gaffer.operation.impl.get.GetEntitiesBySeed;
 import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedEdges;
 import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedElements;
@@ -115,7 +117,7 @@ public abstract class Store {
         this.schema = schema;
         this.properties = properties;
         addOpHandlers();
-        optimiseSchemas();
+        optimiseSchema();
         validateSchemas();
     }
 
@@ -238,8 +240,8 @@ public abstract class Store {
         return properties;
     }
 
-    public void optimiseSchemas() {
-        schemaOptimiser.optimise(schema, hasTrait(StoreTrait.ORDERED));
+    public void optimiseSchema() {
+        schema = schemaOptimiser.optimise(schema, hasTrait(StoreTrait.ORDERED));
     }
 
     public void validateSchemas() {
@@ -410,19 +412,23 @@ public abstract class Store {
         addOperationHandler(AddElements.class, getAddElementsHandler());
 
         // Get Elements
-        addOperationHandler(GetElementsBySeed.class, (OperationHandler) getGetElementsHandler());
-        addOperationHandler(GetEntitiesBySeed.class, (OperationHandler) getGetElementsHandler());
-        addOperationHandler(GetEdgesBySeed.class, (OperationHandler) getGetElementsHandler());
-
-        addOperationHandler(GetRelatedElements.class, (OperationHandler) getGetElementsHandler());
-        addOperationHandler(GetRelatedEntities.class, (OperationHandler) getGetElementsHandler());
-        addOperationHandler(GetRelatedEdges.class, (OperationHandler) getGetElementsHandler());
+        addOperationHandler(GetElements.class, (OperationHandler) getGetElementsHandler());
+        addOperationHandler(GetEntities.class, (OperationHandler) getGetElementsHandler());
+        addOperationHandler(GetEdges.class, (OperationHandler) getGetElementsHandler());
 
         addOperationHandler(GetAdjacentEntitySeeds.class, (OperationHandler) getAdjacentEntitySeedsHandler());
 
         addOperationHandler(GetAllElements.class, (OperationHandler) getGetAllElementsHandler());
         addOperationHandler(GetAllEntities.class, (OperationHandler) getGetAllElementsHandler());
         addOperationHandler(GetAllEdges.class, (OperationHandler) getGetAllElementsHandler());
+
+        // Deprecated Get operations
+        addOperationHandler(GetEdgesBySeed.class, (OperationHandler) getGetElementsHandler());
+        addOperationHandler(GetElementsBySeed.class, (OperationHandler) getGetElementsHandler());
+        addOperationHandler(GetEntitiesBySeed.class, (OperationHandler) getGetElementsHandler());
+        addOperationHandler(GetRelatedEdges.class, (OperationHandler) getGetElementsHandler());
+        addOperationHandler(GetRelatedElements.class, (OperationHandler) getGetElementsHandler());
+        addOperationHandler(GetRelatedEntities.class, (OperationHandler) getGetElementsHandler());
     }
 
     private void addConfiguredOperationHandlers() {

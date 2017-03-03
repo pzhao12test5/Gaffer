@@ -90,28 +90,28 @@ public class GraphTest {
                 .edge(TestGroups.EDGE, new SchemaEdgeDefinition.Builder()
                         .property(TestPropertyNames.PROP_1, TestTypes.PROP_STRING)
                         .build())
-                .buildModule();
+                .build();
 
         final Schema schemaModule2 = new Schema.Builder()
                 .type(TestTypes.PROP_INTEGER, new TypeDefinition.Builder()
                         .clazz(Integer.class)
                         .build())
-                .edge(TestGroups.EDGE, new SchemaEdgeDefinition.Builder()
+                .edge(TestGroups.EDGE_2, new SchemaEdgeDefinition.Builder()
                         .property(TestPropertyNames.PROP_2, TestTypes.PROP_INTEGER)
                         .build())
-                .buildModule();
+                .build();
 
         final Schema schemaModule3 = new Schema.Builder()
                 .entity(TestGroups.ENTITY, new SchemaEntityDefinition.Builder()
                         .property(TestPropertyNames.PROP_1, TestTypes.PROP_STRING)
                         .build())
-                .buildModule();
+                .build();
 
         final Schema schemaModule4 = new Schema.Builder()
                 .entity(TestGroups.ENTITY_2, new SchemaEntityDefinition.Builder()
                         .property(TestPropertyNames.PROP_2, TestTypes.PROP_INTEGER)
                         .build())
-                .buildModule();
+                .build();
 
 
         // When
@@ -131,8 +131,9 @@ public class GraphTest {
     @Test
     public void shouldConstructGraphFromSchemaFolderPath() throws IOException {
         // Given
-        final Schema expectedSchema = Schema.fromJson(StreamUtil.dataSchema(getClass()),
-                StreamUtil.dataTypes(getClass()));
+        final Schema expectedSchema = new Schema.Builder()
+                .json(StreamUtil.dataSchema(getClass()), StreamUtil.dataTypes(getClass()))
+                .build();
 
         Graph graph = null;
         File schemaDir = null;
@@ -166,7 +167,7 @@ public class GraphTest {
         final GraphHook hook2 = mock(GraphHook.class);
         final Graph graph = new Graph.Builder()
                 .storeProperties(StreamUtil.storeProps(getClass()))
-                .addSchema(new Schema())
+                .addSchema(new Schema.Builder().build())
                 .addHook(hook1)
                 .addHook(hook2)
                 .build();
@@ -197,7 +198,7 @@ public class GraphTest {
         final GraphHook hook2 = mock(GraphHook.class);
         final Graph graph = new Graph.Builder()
                 .storeProperties(StreamUtil.storeProps(getClass()))
-                .addSchema(new Schema())
+                .addSchema(new Schema.Builder().build())
                 .addHook(hook1)
                 .addHook(hook2)
                 .build();
@@ -222,8 +223,14 @@ public class GraphTest {
         final GraphHook hook1 = mock(GraphHook.class);
         final GraphHook hook2 = mock(GraphHook.class);
         final Store store = mock(Store.class);
+        final Object result1 = mock(Object.class);
+        final Object result2 = mock(Object.class);
+        final Object result3 = mock(Object.class);
         final Schema schema = new Schema();
+
         given(store.getSchema()).willReturn(schema);
+        given(hook1.postExecute(result1, opChain, user)).willReturn(result2);
+        given(hook2.postExecute(result2, opChain, user)).willReturn(result3);
 
         final Graph graph = new Graph.Builder()
                 .storeProperties(StreamUtil.storeProps(getClass()))
@@ -234,19 +241,19 @@ public class GraphTest {
                 .build();
 
         final ArgumentCaptor<OperationChain> captor = ArgumentCaptor.forClass(OperationChain.class);
-        final Object result = "result";
-        given(store.execute(captor.capture(), Mockito.eq(user))).willReturn(result);
+        given(store.execute(captor.capture(), Mockito.eq(user))).willReturn(result1);
 
         // When
-        graph.execute(opChain, user);
+        final Object actualResult = graph.execute(opChain, user);
 
         // Then
         final InOrder inOrder = inOrder(hook1, hook2);
-        inOrder.verify(hook1).postExecute(result, captor.getValue(), user);
-        inOrder.verify(hook2).postExecute(result, captor.getValue(), user);
+        inOrder.verify(hook1).postExecute(result1, captor.getValue(), user);
+        inOrder.verify(hook2).postExecute(result2, captor.getValue(), user);
         final List<Operation> ops = captor.getValue().getOperations();
         assertEquals(1, ops.size());
         assertSame(operation, ops.get(0));
+        assertSame(actualResult, result3);
     }
 
     @Test
@@ -257,7 +264,15 @@ public class GraphTest {
         final GraphHook hook2 = mock(GraphHook.class);
         final Store store = mock(Store.class);
         final Schema schema = new Schema();
+        final Object result1 = mock(Object.class);
+        final Object result2 = mock(Object.class);
+        final Object result3 = mock(Object.class);
+        final OperationChain opChain = mock(OperationChain.class);
+
         given(store.getSchema()).willReturn(schema);
+        given(hook1.postExecute(result1, opChain, user)).willReturn(result2);
+        given(hook2.postExecute(result2, opChain, user)).willReturn(result3);
+
         final Graph graph = new Graph.Builder()
                 .storeProperties(StreamUtil.storeProps(getClass()))
                 .store(store)
@@ -265,19 +280,18 @@ public class GraphTest {
                 .addHook(hook1)
                 .addHook(hook2)
                 .build();
-        final Object result = "result";
 
-        final OperationChain opChain = mock(OperationChain.class);
         given(opChain.getOperations()).willReturn(Collections.singletonList(mock(Operation.class)));
-        given(store.execute(opChain, user)).willReturn(result);
+        given(store.execute(opChain, user)).willReturn(result1);
 
         // When
-        graph.execute(opChain, user);
+        final Object actualResult = graph.execute(opChain, user);
 
         // Then
         final InOrder inOrder = inOrder(hook1, hook2);
-        inOrder.verify(hook1).postExecute(result, opChain, user);
-        inOrder.verify(hook2).postExecute(result, opChain, user);
+        inOrder.verify(hook1).postExecute(result1, opChain, user);
+        inOrder.verify(hook2).postExecute(result2, opChain, user);
+        assertSame(actualResult, result3);
     }
 
     @Test
@@ -336,7 +350,7 @@ public class GraphTest {
 
 
         // When
-        final Set<StoreTrait> storeTraits = new HashSet<>(Arrays.asList(StoreTrait.AGGREGATION, StoreTrait.TRANSFORMATION));
+        final Set<StoreTrait> storeTraits = new HashSet<>(Arrays.asList(StoreTrait.STORE_AGGREGATION, StoreTrait.TRANSFORMATION));
         given(store.getTraits()).willReturn(storeTraits);
         final Collection<StoreTrait> returnedTraits = graph.getStoreTraits();
 
@@ -400,6 +414,18 @@ public class GraphTest {
         assertEquals(expectedResult, result);
         verify(store).execute(opChain, user);
         verify(operation, Mockito.never()).setView(view);
+    }
+
+    @Test
+    public void shouldThrowExceptionIfStoreClassPropertyIsNotSet() throws OperationException {
+        try {
+            new Graph.Builder()
+                    .addSchema(new Schema())
+                    .storeProperties(new StoreProperties())
+                    .build();
+        } catch (final IllegalArgumentException e) {
+            assertEquals("The Store class name was not found in the store properties for key: " + StoreProperties.STORE_CLASS, e.getMessage());
+        }
     }
 
     static class StoreImpl extends Store {

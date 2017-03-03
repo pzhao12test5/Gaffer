@@ -19,7 +19,6 @@ import com.google.common.collect.Lists;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 import uk.gov.gchq.gaffer.accumulostore.utils.AccumuloPropertyNames;
-import uk.gov.gchq.gaffer.commonutil.CommonConstants;
 import uk.gov.gchq.gaffer.commonutil.StreamUtil;
 import uk.gov.gchq.gaffer.commonutil.TestGroups;
 import uk.gov.gchq.gaffer.commonutil.TestTypes;
@@ -27,7 +26,6 @@ import uk.gov.gchq.gaffer.data.element.Element;
 import uk.gov.gchq.gaffer.data.element.Entity;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.View;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.ViewElementDefinition;
-import uk.gov.gchq.gaffer.exception.SerialisationException;
 import uk.gov.gchq.gaffer.function.aggregate.StringConcat;
 import uk.gov.gchq.gaffer.graph.Graph;
 import uk.gov.gchq.gaffer.graph.Graph.Builder;
@@ -35,8 +33,7 @@ import uk.gov.gchq.gaffer.operation.OperationException;
 import uk.gov.gchq.gaffer.operation.data.EntitySeed;
 import uk.gov.gchq.gaffer.operation.impl.add.AddElements;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllEntities;
-import uk.gov.gchq.gaffer.operation.impl.get.GetEntitiesBySeed;
-import uk.gov.gchq.gaffer.serialisation.AbstractSerialisation;
+import uk.gov.gchq.gaffer.operation.impl.get.GetEntities;
 import uk.gov.gchq.gaffer.serialisation.implementation.StringSerialiser;
 import uk.gov.gchq.gaffer.store.StoreProperties;
 import uk.gov.gchq.gaffer.store.schema.Schema;
@@ -52,7 +49,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 public class AccumuloAggregationIT {
-    private static final StoreProperties STORE_PROPERTIES = StoreProperties.loadStoreProperties(StreamUtil.storeProps(AccumuloStoreITs.class));
+    private static final StoreProperties STORE_PROPERTIES = StoreProperties.loadStoreProperties(StreamUtil
+            .storeProps(AccumuloStoreITs.class));
     private static final String VERTEX = "vertex";
     private static final String PUBLIC_VISIBILITY = "publicVisibility";
     private static final String PRIVATE_VISIBILITY = "privateVisibility";
@@ -89,7 +87,7 @@ public class AccumuloAggregationIT {
         graph.execute(new AddElements(Arrays.asList((Element) entity1, entity2, entity3)), USER);
 
         // Given
-        final GetEntitiesBySeed getElements = new GetEntitiesBySeed.Builder()
+        final GetEntities<EntitySeed> getElements = new GetEntities.Builder<EntitySeed>()
                 .addSeed(new EntitySeed(VERTEX))
                 .view(new View())
                 .build();
@@ -147,7 +145,7 @@ public class AccumuloAggregationIT {
         graph.execute(new AddElements(Arrays.asList((Element) entity1, entity2, entity3)), USER);
 
         // Given
-        final GetEntitiesBySeed getElements = new GetEntitiesBySeed.Builder()
+        final GetEntities<EntitySeed> getElements = new GetEntities.Builder<EntitySeed>()
                 .addSeed(new EntitySeed(VERTEX))
                 .view(new View.Builder()
                         .entity(TestGroups.ENTITY, new ViewElementDefinition.Builder()
@@ -200,7 +198,7 @@ public class AccumuloAggregationIT {
         graph.execute(new AddElements(Arrays.asList((Element) entity1, entity2)), USER);
 
         // Given
-        final GetEntitiesBySeed getElements = new GetEntitiesBySeed.Builder()
+        final GetEntities<EntitySeed> getElements = new GetEntities.Builder<EntitySeed>()
                 .addSeed(new EntitySeed(VERTEX))
                 .view(new View.Builder()
                         .entity(TestGroups.ENTITY, new ViewElementDefinition.Builder()
@@ -244,7 +242,7 @@ public class AccumuloAggregationIT {
         graph.execute(new AddElements(Arrays.asList((Element) entity1, entity2)), USER);
 
         // Given
-        final GetEntitiesBySeed getElements = new GetEntitiesBySeed.Builder()
+        final GetEntities<EntitySeed> getElements = new GetEntities.Builder<EntitySeed>()
                 .addSeed(new EntitySeed(VERTEX))
                 .view(new View.Builder()
                         .entity(TestGroups.ENTITY, new ViewElementDefinition.Builder()
@@ -288,7 +286,7 @@ public class AccumuloAggregationIT {
         graph.execute(new AddElements(Arrays.asList((Element) entity1, entity2)), USER);
 
         // Given
-        final GetEntitiesBySeed getElements = new GetEntitiesBySeed.Builder()
+        final GetEntities<EntitySeed> getElements = new GetEntities.Builder<EntitySeed>()
                 .addSeed(new EntitySeed(VERTEX))
                 .view(new View.Builder()
                         .entity(TestGroups.ENTITY, new ViewElementDefinition.Builder()
@@ -384,7 +382,7 @@ public class AccumuloAggregationIT {
                 )), USER);
 
         // Given
-        final GetEntitiesBySeed getElements = new GetEntitiesBySeed.Builder()
+        final GetEntities<EntitySeed> getElements = new GetEntities.Builder<EntitySeed>()
                 .addSeed(new EntitySeed(VERTEX))
                 .view(new View.Builder()
                         .entity(TestGroups.ENTITY, new ViewElementDefinition.Builder()
@@ -509,7 +507,7 @@ public class AccumuloAggregationIT {
                 )), USER);
 
         // Given
-        final GetAllEntities getAllEntities = new GetAllEntities.Builder().build();
+        final GetAllEntities getAllEntities = new GetAllEntities();
 
         // When
         final List<Entity> results = Lists.newArrayList(graph.execute(getAllEntities, USER));
@@ -571,7 +569,7 @@ public class AccumuloAggregationIT {
                         .type("visibility", new TypeDefinition.Builder()
                                 .clazz(String.class)
                                 .aggregateFunction(new StringConcat())
-                                .serialiser(new VisibilitySerialiser())
+                                .serialiser(new StringSerialiser())
                                 .build())
                         .entity(TestGroups.ENTITY, new SchemaEntityDefinition.Builder()
                                 .vertex(TestTypes.ID_STRING)
@@ -641,47 +639,6 @@ public class AccumuloAggregationIT {
                                 .build())
                         .build())
                 .build();
-    }
-
-    public static final class VisibilitySerialiser extends AbstractSerialisation<String> {
-
-        @Override
-        public boolean canHandle(final Class clazz) {
-            return String.class.equals(clazz);
-        }
-
-        @Override
-        public byte[] serialise(final String value) throws SerialisationException {
-            try {
-                return value.getBytes(CommonConstants.UTF_8);
-            } catch (UnsupportedEncodingException e) {
-                throw new SerialisationException(e.getMessage(), e);
-            }
-        }
-
-        @Override
-        public String deserialise(final byte[] bytes) throws SerialisationException {
-            try {
-                return new String(bytes, CommonConstants.UTF_8);
-            } catch (UnsupportedEncodingException e) {
-                throw new SerialisationException(e.getMessage(), e);
-            }
-        }
-
-        @Override
-        public byte[] serialiseNull() {
-            return new byte[]{};
-        }
-
-        @Override
-        public String deserialiseEmptyBytes() {
-            return "";
-        }
-
-        @Override
-        public boolean isByteOrderPreserved() {
-            return true;
-        }
     }
 
 }

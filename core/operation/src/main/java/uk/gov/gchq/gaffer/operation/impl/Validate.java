@@ -18,12 +18,14 @@ package uk.gov.gchq.gaffer.operation.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import uk.gov.gchq.gaffer.commonutil.iterable.CloseableIterable;
 import uk.gov.gchq.gaffer.commonutil.iterable.WrappedCloseableIterable;
 import uk.gov.gchq.gaffer.data.element.Element;
 import uk.gov.gchq.gaffer.operation.AbstractGetIterableOperation;
 import uk.gov.gchq.gaffer.operation.AbstractOperation;
+import uk.gov.gchq.gaffer.operation.serialisation.TypeReferenceImpl;
 import java.util.List;
 
 /**
@@ -96,6 +98,12 @@ public class Validate extends AbstractGetIterableOperation<Element, Element> {
         return super.getInput();
     }
 
+    @JsonProperty
+    @Override
+    public void setInput(final CloseableIterable<Element> input) {
+        super.setInput(input);
+    }
+
     /**
      * @return the input {@link java.util.List} of {@link uk.gov.gchq.gaffer.data.element.Element}s to be validated.
      */
@@ -111,6 +119,11 @@ public class Validate extends AbstractGetIterableOperation<Element, Element> {
     @JsonProperty(value = "elements")
     void setElementList(final List<Element> elements) {
         setInput(new WrappedCloseableIterable<>(elements));
+    }
+
+    @Override
+    protected TypeReference createOutputTypeReference() {
+        return new TypeReferenceImpl.CloseableIterableElement();
     }
 
     public abstract static class BaseBuilder<CHILD_CLASS extends BaseBuilder<?>>
@@ -129,6 +142,7 @@ public class Validate extends AbstractGetIterableOperation<Element, Element> {
             op.setElements(elements);
             return self();
         }
+
         /**
          * @param elements the input {@link CloseableIterable} of {@link uk.gov.gchq.gaffer.data.element.Element}s to be set on the operation.
          * @return this Builder

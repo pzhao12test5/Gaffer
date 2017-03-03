@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
-public class TypeSubTypeValueSerialiser extends AbstractSerialisation<TypeSubTypeValue> {
+public class TypeSubTypeValueSerialiser implements Serialisation<TypeSubTypeValue> {
 
     private static final long serialVersionUID = 4687862916179832187L;
 
@@ -109,7 +109,7 @@ public class TypeSubTypeValueSerialiser extends AbstractSerialisation<TypeSubTyp
     }
 
     @Override
-    public boolean isByteOrderPreserved() {
+    public boolean preservesObjectOrdering() {
         return true;
     }
 

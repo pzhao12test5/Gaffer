@@ -15,9 +15,9 @@
  */
 package uk.gov.gchq.gaffer.example.gettingstarted.analytic;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.IOUtils;
 import uk.gov.gchq.gaffer.commonutil.CommonConstants;
 import uk.gov.gchq.gaffer.commonutil.StreamUtil;
 import uk.gov.gchq.gaffer.example.gettingstarted.walkthrough.WalkthroughStrSubstitutor;
@@ -42,13 +42,13 @@ public abstract class LoadAndQuery {
     public LoadAndQuery(final String header) {
 
         exampleId = Integer.parseInt(getClass().getSimpleName().replace(LoadAndQuery.class.getSimpleName(), ""));
-        this.header = "Example " + exampleId + " - " + header;
+        this.header = "Example - " + header;
         dataFileLocation = "/example/gettingstarted/" + exampleId + "/data.txt";
         schemaFolderLocation = "/example/gettingstarted/" + exampleId + "/schema";
         storePropertiesLocation = "/example/gettingstarted/mockaccumulostore.properties";
     }
 
-    public abstract Iterable run() throws OperationException;
+    public abstract Object run() throws OperationException;
 
     public void log(final String message) {
         log(DESCRIPTION_LOG_KEY, message);
@@ -80,8 +80,8 @@ public abstract class LoadAndQuery {
             if (null == stream) {
                 throw new RuntimeException("Missing walkthrough file");
             }
-            walkthrough = new String(IOUtils.readFully(stream, stream.available(), true), CommonConstants.UTF_8);
-        } catch (IOException e) {
+            walkthrough = new String(IOUtils.toByteArray(stream), CommonConstants.UTF_8);
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
         final String formattedWalkthrough = WalkthroughStrSubstitutor.substitute(walkthrough, this, exampleId, header);

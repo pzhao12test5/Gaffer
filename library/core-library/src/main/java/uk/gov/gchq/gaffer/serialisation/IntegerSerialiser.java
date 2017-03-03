@@ -25,7 +25,7 @@ import java.io.UnsupportedEncodingException;
  * instead.
  */
 @Deprecated
-public class IntegerSerialiser extends AbstractSerialisation<Integer> {
+public class IntegerSerialiser implements Serialisation<Integer> {
     private static final long serialVersionUID = 5647756843689779437L;
 
     @Override
@@ -57,7 +57,7 @@ public class IntegerSerialiser extends AbstractSerialisation<Integer> {
     }
 
     @Override
-    public boolean isByteOrderPreserved() {
+    public boolean preservesObjectOrdering() {
         return true;
     }
 }

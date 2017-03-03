@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Crown Copyright
+ * Copyright 2016-2017 Crown Copyright
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,12 +26,9 @@ import uk.gov.gchq.gaffer.operation.impl.get.GetAdjacentEntitySeeds;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllEdges;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllElements;
 import uk.gov.gchq.gaffer.operation.impl.get.GetAllEntities;
-import uk.gov.gchq.gaffer.operation.impl.get.GetEdgesBySeed;
-import uk.gov.gchq.gaffer.operation.impl.get.GetElementsBySeed;
-import uk.gov.gchq.gaffer.operation.impl.get.GetEntitiesBySeed;
-import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedEdges;
-import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedElements;
-import uk.gov.gchq.gaffer.operation.impl.get.GetRelatedEntities;
+import uk.gov.gchq.gaffer.operation.impl.get.GetEdges;
+import uk.gov.gchq.gaffer.operation.impl.get.GetElements;
+import uk.gov.gchq.gaffer.operation.impl.get.GetEntities;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -56,28 +53,32 @@ public interface IExamplesService {
     OperationChain execute();
 
     @GET
+    @Path("/graph/doOperation/chunked")
+    OperationChain executeChunked();
+
+    @GET
     @Path("/graph/doOperation/get/elements/bySeed")
-    GetElementsBySeed<ElementSeed, Element> getElementsBySeed();
+    GetElements<ElementSeed, Element> getElementsBySeed();
 
     @GET
     @Path("/graph/doOperation/get/elements/related")
-    GetRelatedElements<ElementSeed, Element> getRelatedElements();
+    GetElements<ElementSeed, Element> getRelatedElements();
 
     @GET
     @Path("/graph/doOperation/get/entities/bySeed")
-    GetEntitiesBySeed getEntitiesBySeed();
+    GetEntities<ElementSeed> getEntitiesBySeed();
 
     @GET
     @Path("/graph/doOperation/get/entities/related")
-    GetRelatedEntities getRelatedEntities();
+    GetEntities<ElementSeed> getRelatedEntities();
 
     @GET
     @Path("/graph/doOperation/get/edges/bySeed")
-    GetEdgesBySeed getEdgesBySeed();
+    GetEdges<ElementSeed> getEdgesBySeed();
 
     @GET
     @Path("/graph/doOperation/get/edges/related")
-    GetRelatedEdges getRelatedEdges();
+    GetEdges<ElementSeed> getRelatedEdges();
 
     @GET
     @Path("/graph/doOperation/get/entitySeeds/adjacent")
@@ -94,6 +95,18 @@ public interface IExamplesService {
     @GET
     @Path("/graph/doOperation/get/edges/all")
     GetAllEdges getAllEdges();
+
+    @GET
+    @Path("/graph/doOperation/get/elements")
+    GetElements getElements();
+
+    @GET
+    @Path("/graph/doOperation/get/entities")
+    GetEntities getEntities();
+
+    @GET
+    @Path("/graph/doOperation/get/edges")
+    GetEdges getEdges();
 
     @GET
     @Path("/graph/doOperation/add/elements")
