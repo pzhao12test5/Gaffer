@@ -16,6 +16,7 @@
 
 package uk.gov.gchq.gaffer.operation.impl.get;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import uk.gov.gchq.gaffer.data.element.id.ElementId;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.View;
@@ -28,6 +29,7 @@ import uk.gov.gchq.gaffer.operation.data.ElementSeed;
 import uk.gov.gchq.gaffer.operation.data.EntitySeed;
 import uk.gov.gchq.gaffer.operation.graph.GraphFilters.DirectedType;
 import uk.gov.gchq.gaffer.operation.graph.SeededGraphFilters;
+import java.io.IOException;
 import java.util.Iterator;
 
 import static junit.framework.TestCase.assertNotNull;
@@ -55,7 +57,7 @@ public class GetElementsTest implements OperationTest {
         assertEquals(SeedMatchingType.EQUAL, op.getSeedMatching());
     }
 
-    private void shouldSerialiseAndDeserialiseOperationWithElementIds() throws SerialisationException {
+    private void shouldSerialiseAndDeserialiseOperationWithElementIds() throws IOException {
         // Given
         final ElementSeed elementSeed1 = new EntitySeed("identifier");
         final ElementSeed elementSeed2 = new EdgeSeed("source2", "destination2", true);
@@ -66,6 +68,9 @@ public class GetElementsTest implements OperationTest {
         // When
         byte[] json = serialiser.serialise(op, true);
         final GetElements deserialisedOp = serialiser.deserialise(json, GetElements.class);
+
+        ObjectMapper mapper = new ObjectMapper();
+        System.out.println(mapper.writeValueAsString(op));
 
         // Then
         final Iterator itr = deserialisedOp.getInput().iterator();
@@ -143,7 +148,7 @@ public class GetElementsTest implements OperationTest {
 
     @Test
     @Override
-    public void shouldSerialiseAndDeserialiseOperation() throws SerialisationException {
+    public void shouldSerialiseAndDeserialiseOperation() throws IOException {
         shouldSerialiseAndDeserialiseOperationWithElementIds();
     }
 
