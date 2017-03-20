@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Crown Copyright
+ * Copyright 2017 Crown Copyright
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.gchq.gaffer.operation;
+package uk.gov.gchq.gaffer.sparkaccumulo.operation.handler
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.junit.Test;
-import uk.gov.gchq.gaffer.exception.SerialisationException;
-import java.io.IOException;
+import org.apache.spark.graphx.VertexRDD
+import uk.gov.gchq.gaffer.spark.operation.graphx.ToDegrees
+import uk.gov.gchq.gaffer.store.{Context, Store}
+import uk.gov.gchq.gaffer.store.operation.handler.OutputOperationHandler
 
-public interface OperationTest {
-    @Test
-    void shouldSerialiseAndDeserialiseOperation() throws IOException;
-
-    @Test
-    void builderShouldCreatePopulatedOperation();
-}
-
+class ToDegreesHandler{}
+//extends OutputOperationHandler[ToDegrees[_,_], VertexRDD[Int]] {
+//  override def doOperation(operation: ToDegrees[_,_], context: Context, store: Store): VertexRDD[Int] =
+////    operation.getInput.degrees
+//  null
+//}

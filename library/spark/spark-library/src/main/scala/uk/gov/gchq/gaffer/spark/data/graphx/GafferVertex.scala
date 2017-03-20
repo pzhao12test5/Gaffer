@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Crown Copyright
+ * Copyright 2017 Crown Copyright
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.gchq.gaffer.operation;
+package uk.gov.gchq.gaffer.spark.data.graphx
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.junit.Test;
-import uk.gov.gchq.gaffer.exception.SerialisationException;
-import java.io.IOException;
+import org.apache.spark.graphx.VertexId
+import uk.gov.gchq.gaffer.data.element.Entity
 
-public interface OperationTest {
-    @Test
-    void shouldSerialiseAndDeserialiseOperation() throws IOException;
+import scala.reflect.ClassTag
 
-    @Test
-    void builderShouldCreatePopulatedOperation();
+case class GafferVertex(vertex: Entity) {
+
+  def toGraphX(): (VertexId, Entity) = (vertex.getVertex.hashCode(), vertex)
+
+  object GafferVertex {
+    def apply(vertex: Entity): (VertexId, Entity) = {
+      new GafferVertex(vertex).toGraphX
+    }
+  }
+
 }
-

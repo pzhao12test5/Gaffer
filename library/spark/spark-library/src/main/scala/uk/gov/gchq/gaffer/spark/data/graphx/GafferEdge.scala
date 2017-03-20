@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Crown Copyright
+ * Copyright 2017 Crown Copyright
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,28 @@
  * limitations under the License.
  */
 
-package uk.gov.gchq.gaffer.operation;
+package uk.gov.gchq.gaffer.spark.data.graphx
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.junit.Test;
-import uk.gov.gchq.gaffer.exception.SerialisationException;
-import java.io.IOException;
+import org.apache.spark.graphx
+import uk.gov.gchq.gaffer.data.element.Edge
 
-public interface OperationTest {
-    @Test
-    void shouldSerialiseAndDeserialiseOperation() throws IOException;
+case class GafferEdge(edge: Edge) {
 
-    @Test
-    void builderShouldCreatePopulatedOperation();
+  def getSource(): Object = {
+    edge.getSource
+  }
+
+  def getDestination(): Object = {
+    edge.getDestination
+  }
+
+  def toGraphX(): graphx.Edge[Edge] = {
+    graphx.Edge(edge.getSource.hashCode(), edge.getDestination.hashCode())
+  }
+
+  object GafferEdge {
+
+    def apply(edge: Edge): graphx.Edge[Edge] =
+      new GafferEdge(edge).toGraphX()
+  }
 }
-
