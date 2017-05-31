@@ -74,7 +74,7 @@ public final class AccumuloStoreConstants {
     public static final String OPERATION_BULK_IMPORT_MAX_REDUCERS = "accumulostore.operation.bulk_import.max_reducers";
     public static final String OPERATION_BULK_IMPORT_MIN_REDUCERS = "accumulostore.operation.bulk_import.min_reducers";
     public static final String ADD_ELEMENTS_FROM_HDFS_SKIP_IMPORT = "accumulostore.operation.hdfs.skip_import";
-    public static final String OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE = "accumulostore.operation.return_matched_id_as_edge_source";
+//    public static final String OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE = "accumulostore.operation.return_matched_id_as_edge_source";
 
     // General use constants
     public static final byte[] EMPTY_BYTES = new byte[0];

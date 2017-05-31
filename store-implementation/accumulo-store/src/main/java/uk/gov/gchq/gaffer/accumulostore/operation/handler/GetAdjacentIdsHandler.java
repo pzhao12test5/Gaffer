@@ -21,7 +21,6 @@ import uk.gov.gchq.gaffer.accumulostore.key.IteratorSettingFactory;
 import uk.gov.gchq.gaffer.accumulostore.key.exception.IteratorSettingException;
 import uk.gov.gchq.gaffer.accumulostore.retriever.AccumuloRetriever;
 import uk.gov.gchq.gaffer.accumulostore.retriever.impl.AccumuloSingleIDRetriever;
-import uk.gov.gchq.gaffer.accumulostore.utils.AccumuloStoreConstants;
 import uk.gov.gchq.gaffer.commonutil.iterable.CloseableIterable;
 import uk.gov.gchq.gaffer.commonutil.iterable.TransformIterable;
 import uk.gov.gchq.gaffer.data.IsEdgeValidator;
@@ -59,7 +58,7 @@ public class GetAdjacentIdsHandler implements OutputOperationHandler<GetAdjacent
             final IteratorSettingFactory iteratorFactory = store.getKeyPackage().getIteratorFactory();
             final GetElements getEdges = new GetElements.Builder()
                     .options(op.getOptions())
-                    .option(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE, "true")
+//                    .option(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE, "true")
                     .view(new View.Builder()
                             .merge(op.getView())
                             .entities(Collections.emptyMap())

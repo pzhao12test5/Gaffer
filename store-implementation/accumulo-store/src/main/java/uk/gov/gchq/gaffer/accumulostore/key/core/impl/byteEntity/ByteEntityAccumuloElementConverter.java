@@ -19,10 +19,10 @@ package uk.gov.gchq.gaffer.accumulostore.key.core.impl.byteEntity;
 import org.apache.accumulo.core.data.Key;
 import uk.gov.gchq.gaffer.accumulostore.key.core.AbstractCoreKeyAccumuloElementConverter;
 import uk.gov.gchq.gaffer.accumulostore.key.exception.AccumuloElementConversionException;
-import uk.gov.gchq.gaffer.accumulostore.utils.AccumuloStoreConstants;
 import uk.gov.gchq.gaffer.commonutil.ByteArrayEscapeUtils;
 import uk.gov.gchq.gaffer.commonutil.pair.Pair;
 import uk.gov.gchq.gaffer.data.element.Edge;
+import uk.gov.gchq.gaffer.data.element.Edge.MatchedVertex;
 import uk.gov.gchq.gaffer.data.element.Entity;
 import uk.gov.gchq.gaffer.exception.SerialisationException;
 import uk.gov.gchq.gaffer.serialisation.ToBytesSerialiser;
@@ -131,11 +131,8 @@ public class ByteEntityAccumuloElementConverter extends AbstractCoreKeyAccumuloE
     }
 
     @Override
-    protected boolean[] getSourceAndDestinationFromRowKey(final byte[] rowKey, final byte[][] sourceDestValues,
-                                                        final Map<String, String> options) throws AccumuloElementConversionException {
-        final boolean[] directedReversedValues = new boolean[2];
-        directedReversedValues[0] = false;
-        directedReversedValues[1]  = false;
+    protected Pair<Boolean, MatchedVertex> getSourceAndDestinationFromRowKey(final byte[] rowKey, final byte[][] sourceDestValues,
+                                                        final Map<String, String> options) {
         // Get element class, sourceValue, destinationValue and directed flag from row key
         // Expect to find 3 delimiters (4 fields)
         final int[] positionsOfDelimiters = new int[3];
@@ -167,28 +164,19 @@ public class ByteEntityAccumuloElementConverter extends AbstractCoreKeyAccumuloE
             // Edge is undirected
             sourceDestValues[0] = getSourceBytes(rowKey, positionsOfDelimiters);
             sourceDestValues[1] = getDestBytes(rowKey, positionsOfDelimiters);
-
-            return directedReversedValues;
+            return new Pair<>(false, null);
         } else if (directionFlag == ByteEntityPositions.CORRECT_WAY_DIRECTED_EDGE) {
             // Edge is directed and the first identifier is the source of the edge
             sourceDestValues[0] = getSourceBytes(rowKey, positionsOfDelimiters);
             sourceDestValues[1] = getDestBytes(rowKey, positionsOfDelimiters);
-
-            directedReversedValues[0] = true;
-            return directedReversedValues;
+            return new Pair<>(true, MatchedVertex.SOURCE);
         } else if (directionFlag == ByteEntityPositions.INCORRECT_WAY_DIRECTED_EDGE) {
             // Edge is directed and the second identifier is the source of the edge
-            directedReversedValues[0] = true;
             int src = 1;
             int dst = 0;
-            if (matchEdgeSource(options)) {
-                directedReversedValues[1] = true;
-                src = 0;
-                dst = 1;
-            }
             sourceDestValues[src] = getSourceBytes(rowKey, positionsOfDelimiters);
             sourceDestValues[dst] = getDestBytes(rowKey, positionsOfDelimiters);
-            return directedReversedValues;
+            return new Pair<>(true, MatchedVertex.DESTINATION);
         } else {
             throw new AccumuloElementConversionException(
                     "Invalid direction flag in row key - flag was " + directionFlag);
@@ -203,11 +191,5 @@ public class ByteEntityAccumuloElementConverter extends AbstractCoreKeyAccumuloE
     private byte[] getSourceBytes(final byte[] rowKey, final int[] positionsOfDelimiters) {
         return ByteArrayEscapeUtils
                 .unEscape(Arrays.copyOfRange(rowKey, 0, positionsOfDelimiters[0]));
-    }
-
-    private boolean matchEdgeSource(final Map<String, String> options) {
-        return options != null
-                && options.containsKey(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE)
-                && "true".equalsIgnoreCase(options.get(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE));
     }
 }

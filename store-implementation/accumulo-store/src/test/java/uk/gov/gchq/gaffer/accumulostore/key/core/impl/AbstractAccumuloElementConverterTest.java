@@ -29,6 +29,7 @@ import uk.gov.gchq.gaffer.commonutil.TestGroups;
 import uk.gov.gchq.gaffer.commonutil.TestPropertyNames;
 import uk.gov.gchq.gaffer.commonutil.pair.Pair;
 import uk.gov.gchq.gaffer.data.element.Edge;
+import uk.gov.gchq.gaffer.data.element.Edge.MatchedVertex;
 import uk.gov.gchq.gaffer.data.element.Entity;
 import uk.gov.gchq.gaffer.data.element.Properties;
 import uk.gov.gchq.gaffer.data.elementdefinition.exception.SchemaException;
@@ -204,14 +205,15 @@ public abstract class AbstractAccumuloElementConverterTest {
 
         final Pair<Key, Key> keys = converter.getKeysFromElement(edge);
         final Map<String, String> options = new HashMap<>();
-        options.put(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE, "true");
+//        options.put(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE, "true");
 
         // When
         final Edge newEdge = (Edge) converter.getElementFromKey(keys.getSecond(), options);
 
         // Then
-        assertEquals("2", newEdge.getSource());
-        assertEquals("1", newEdge.getDestination());
+        assertEquals("1", newEdge.getSource());
+        assertEquals("2", newEdge.getDestination());
+        assertEquals(MatchedVertex.DESTINATION, newEdge.getMatchedVertex());
         assertEquals(true, newEdge.isDirected());
         assertEquals(100, newEdge.getProperty(AccumuloPropertyNames.COLUMN_QUALIFIER));
     }

@@ -16,12 +16,10 @@
 
 package uk.gov.gchq.gaffer.data.element;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -48,7 +46,7 @@ public class Edge extends Element implements EdgeId {
     private Object source;
     private Object destination;
     private boolean directed;
-    private boolean reversed;
+    private MatchedVertex matchedVertex = null;
 
     private Edge() {
         // Required for Jackson
@@ -62,12 +60,21 @@ public class Edge extends Element implements EdgeId {
         orderVertices();
     }
 
+    public Edge(final String group, final Object source, final Object destination, final boolean directed, final MatchedVertex matchedVertex) {
+        super(group);
+        this.source = source;
+        this.destination = destination;
+        this.directed = directed;
+        this.matchedVertex = matchedVertex;
+        orderVertices();
+    }
+
     private Edge(final Builder builder) {
         super(builder.group);
         this.source = builder.source;
         this.destination = builder.destination;
         this.directed = builder.directed;
-        this.reversed = builder.reversed;
+        this.matchedVertex = builder.matchedVertex;
         this.properties = builder.properties;
         orderVertices();
     }
@@ -118,13 +125,8 @@ public class Edge extends Element implements EdgeId {
         }
     }
 
-    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
-    public boolean isReversed() {
-        return reversed;
-    }
-
-    public void setReversed(final boolean reversed) {
-        this.reversed = reversed;
+    public MatchedVertex getMatchedVertex() {
+        return matchedVertex;
     }
 
     public void reinitialise(final String group, final Object source, final Object destination, final boolean directed) {
@@ -138,7 +140,7 @@ public class Edge extends Element implements EdgeId {
 
     private void orderVertices() {
         if (null != source && null != destination) {
-            if (!directed && !reversed) {
+            if (!directed) {
                 if (source instanceof Comparable && destination.getClass().equals(source
                         .getClass())) {
                     if (((Comparable) source).compareTo((Comparable) destination) > 0) {
@@ -156,6 +158,13 @@ public class Edge extends Element implements EdgeId {
         final Object tmp = this.source;
         this.source = this.destination;
         this.destination = tmp;
+        if (matchedVertex != null) {
+            if (matchedVertex == MatchedVertex.DESTINATION) {
+                matchedVertex = MatchedVertex.SOURCE;
+            } else {
+                matchedVertex = MatchedVertex.DESTINATION;
+            }
+        }
     }
 
     @Override
@@ -229,7 +238,7 @@ public class Edge extends Element implements EdgeId {
         private Object source;
         private Object destination;
         private boolean directed;
-        private boolean reversed;
+        private MatchedVertex matchedVertex = null;
         private String group = "UNKNOWN";
         private final Properties properties = new Properties();
 
@@ -255,14 +264,14 @@ public class Edge extends Element implements EdgeId {
             return this;
         }
 
-        public Builder reversed(final boolean reversed) {
-            this.reversed = reversed;
-            return this;
-        }
-
         @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "class")
         public Builder properties(final Map<String, Object> properties) {
             this.properties.putAll(properties);
+            return this;
+        }
+
+        public Builder matchedVertex(final MatchedVertex matchedVertex) {
+            this.matchedVertex = matchedVertex;
             return this;
         }
 
@@ -280,6 +289,11 @@ public class Edge extends Element implements EdgeId {
         public Edge build() {
             return new Edge(this);
         }
+    }
+
+    public enum MatchedVertex {
+        SOURCE,
+        DESTINATION
     }
 }
 

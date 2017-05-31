@@ -19,10 +19,10 @@ package uk.gov.gchq.gaffer.accumulostore.key.core.impl.classic;
 import org.apache.accumulo.core.data.Key;
 import uk.gov.gchq.gaffer.accumulostore.key.core.AbstractCoreKeyAccumuloElementConverter;
 import uk.gov.gchq.gaffer.accumulostore.key.exception.AccumuloElementConversionException;
-import uk.gov.gchq.gaffer.accumulostore.utils.AccumuloStoreConstants;
 import uk.gov.gchq.gaffer.commonutil.ByteArrayEscapeUtils;
 import uk.gov.gchq.gaffer.commonutil.pair.Pair;
 import uk.gov.gchq.gaffer.data.element.Edge;
+import uk.gov.gchq.gaffer.data.element.Edge.MatchedVertex;
 import uk.gov.gchq.gaffer.data.element.Entity;
 import uk.gov.gchq.gaffer.exception.SerialisationException;
 import uk.gov.gchq.gaffer.serialisation.ToBytesSerialiser;
@@ -131,11 +131,8 @@ public class ClassicAccumuloElementConverter extends AbstractCoreKeyAccumuloElem
     }
 
     @Override
-    protected boolean[] getSourceAndDestinationFromRowKey(final byte[] rowKey, final byte[][] sourceDestValue,
-                                                        final Map<String, String> options) throws AccumuloElementConversionException {
-        final boolean[] directedReversedValues = new boolean[2];
-        directedReversedValues[0] = false;
-        directedReversedValues[1] = false;
+    protected Pair<Boolean, MatchedVertex> getSourceAndDestinationFromRowKey(final byte[] rowKey, final byte[][] sourceDestValue,
+                                                        final Map<String, String> options) {
         // Get sourceValue, destinationValue and directed flag from row key
         // Expect to find 2 delimiters (3 fields)
         final int[] positionsOfDelimiters = new int[2];
@@ -161,26 +158,23 @@ public class ClassicAccumuloElementConverter extends AbstractCoreKeyAccumuloElem
             // Edge is undirected
             sourceDestValue[0] = getSourceBytes(rowKey, positionsOfDelimiters);
             sourceDestValue[1] = getDestBytes(rowKey, positionsOfDelimiters);
-            return directedReversedValues;
+            return new Pair<>(false, null);
         } else if (directionFlag == ClassicBytePositions.CORRECT_WAY_DIRECTED_EDGE) {
             // Edge is directed and the first identifier is the source of the edge
-            directedReversedValues[0] = true;
             sourceDestValue[0] = getSourceBytes(rowKey, positionsOfDelimiters);
             sourceDestValue[1] = getDestBytes(rowKey, positionsOfDelimiters);
-            return directedReversedValues;
+            return new Pair<>(true, MatchedVertex.SOURCE);
         } else if (directionFlag == ClassicBytePositions.INCORRECT_WAY_DIRECTED_EDGE) {
             // Edge is directed and the second identifier is the source of the edge
-            directedReversedValues[0] = true;
             int src = 1;
             int dst = 0;
-            if (matchEdgeSource(options)) {
-                directedReversedValues[1] = true;
-                src = 0;
-                dst = 1;
-            }
+//            if (matchEdgeSource(options)) {
+//                src = 0;
+//                dst = 1;
+//            }
             sourceDestValue[src] = getSourceBytes(rowKey, positionsOfDelimiters);
             sourceDestValue[dst] = getDestBytes(rowKey, positionsOfDelimiters);
-            return directedReversedValues;
+            return new Pair<>(true, MatchedVertex.DESTINATION);
         } else {
             throw new AccumuloElementConversionException(
                     "Invalid direction flag in row key - flag was " + directionFlag);
@@ -197,9 +191,12 @@ public class ClassicAccumuloElementConverter extends AbstractCoreKeyAccumuloElem
                 .unEscape(Arrays.copyOfRange(rowKey, 0, positionsOfDelimiters[0]));
     }
 
-    private boolean matchEdgeSource(final Map<String, String> options) {
-        return options != null
-                && options.containsKey(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE)
-                && "true".equalsIgnoreCase(options.get(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE));
-    }
+//    private boolean matchEdgeSource(final Map<String, String> options) {
+//
+////        options.computeIfPresent(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE, )
+//
+//        return options != null
+//                && options.containsKey(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE)
+//                && "true".equalsIgnoreCase(options.get(AccumuloStoreConstants.OPERATION_RETURN_MATCHED_SEEDS_AS_EDGE_SOURCE));
+//    }
 }

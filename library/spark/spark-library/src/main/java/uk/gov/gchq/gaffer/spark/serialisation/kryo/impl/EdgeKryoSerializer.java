@@ -36,7 +36,6 @@ public class EdgeKryoSerializer extends Serializer<Edge> {
         kryo.writeClass(output, edge.getDestination().getClass());
         kryo.writeObject(output, edge.getDestination());
         output.writeBoolean(edge.isDirected());
-        output.writeBoolean(edge.isReversed());
         kryo.writeObjectOrNull(output, edge.getProperties(), Properties.class);
     }
 
@@ -54,7 +53,6 @@ public class EdgeKryoSerializer extends Serializer<Edge> {
         builder.destination(kryo.readObject(input, reg.getType()));
 
         builder.directed(input.readBoolean());
-        builder.reversed(input.readBoolean());
         builder.properties(kryo.readObjectOrNull(input, Properties.class));
 
         return builder.build();
