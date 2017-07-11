@@ -41,31 +41,51 @@ function log() {
 }
 
 function init(onSwaggerComplete){
-      window.swaggerUi = new SwaggerUi({
-        url: "latest/swagger.json",
-        dom_id: "swagger-ui-container",
-        supportedSubmitMethods: ['get', 'post', 'put', 'delete'],
-        onComplete: function(swaggerApi, swaggerUi){
-          log("Loaded swagger");
-              $('pre code').each(function(i,e){hljs.highlightBlock(e)});
-              addExampleButtons();
-              if(onSwaggerComplete) {
-                  onSwaggerComplete();
-              }
-        },
-        onFailure: function(data) {
-          log("Unable to Load SwaggerUI");
-        },
-        docExpansion: "none",
-        jsonEditor: false,
-        defaultModelRendering: 'schema',
-        showRequestHeaders: false,
-        showOperationIds: false,
-        docExpansion: "none",
-        sorter: "alpha",
-        apisSorter: "alpha",
-        operationsSorter: "alpha"
-      });
+    log('init')
+    window.onload = function() {
 
-      window.swaggerUi.load();
+      // Build a system
+      const ui = SwaggerUIBundle({
+        url: "latest/swagger.json",
+        dom_id: '#swagger-ui',
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      })
+
+      window.ui = ui
+    }
+
+//window.onload = function() {
+//
+//        // Build a system
+//        const ui = SwaggerUIBundle({
+//        url: "latest/swagger.json",
+//        dom_id: '#swagger-ui',
+//        presets: [
+//        SwaggerUIBundle.presets.apis,
+//        SwaggerUIStandalonePreset
+//        ],
+//        plugins: [
+//        SwaggerUIBundle.plugins.DownloadUrl
+//        ],
+//        layout: "StandaloneLayout"
+//        ,onComplete: function(swaggerApi, swaggerUi){
+//        log("Loaded swagger");
+//        $('pre code').each(function(i,e){hljs.highlightBlock(e)});
+//        addExampleButtons();
+//        if(onSwaggerComplete) {
+//        onSwaggerComplete();
+//        }
+//        },
+//        onFailure: function(data) {
+//        log("Unable to Load SwaggerUI");
+//        }})
+//
+//        window.ui = ui
 }
