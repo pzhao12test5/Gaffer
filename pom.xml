@@ -557,6 +557,8 @@
                     <excludes>
                         <exclude>${exclude.tests}</exclude>
                     </excludes>
+                    <parallel>classes</parallel>
+                    <threadCount>4</threadCount>
                 </configuration>
             </plugin>
             <plugin>
