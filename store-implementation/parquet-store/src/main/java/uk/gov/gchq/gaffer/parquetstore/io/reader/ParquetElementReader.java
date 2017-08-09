@@ -32,6 +32,7 @@ public class ParquetElementReader extends ParquetReader<Element> {
         return new ParquetElementReader.Builder(file);
     }
 
+    @Deprecated
     protected ParquetElementReader(final Path file, final ReadSupport<Element> readSupport) throws IOException {
         super(file, readSupport);
         throw new UnsupportedOperationException("Use the builder to construct the ParquetElementReader.");

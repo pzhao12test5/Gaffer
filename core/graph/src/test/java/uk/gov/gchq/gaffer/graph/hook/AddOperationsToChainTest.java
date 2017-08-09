@@ -16,8 +16,8 @@
 
 package uk.gov.gchq.gaffer.graph.hook;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
-import sun.misc.IOUtils;
 import uk.gov.gchq.gaffer.commonutil.StreamUtil;
 import uk.gov.gchq.gaffer.operation.Operation;
 import uk.gov.gchq.gaffer.operation.OperationChain;
@@ -171,7 +171,7 @@ public class AddOperationsToChainTest extends GraphHookTest<AddOperationsToChain
         // Given
         final byte[] bytes;
         try (final InputStream inputStream = StreamUtil.openStream(getClass(), ADD_OPERATIONS_TO_CHAIN_RESOURCE_PATH)) {
-            bytes = IOUtils.readFully(inputStream, inputStream.available(), true);
+            bytes = IOUtils.toByteArray(inputStream, inputStream.available());
         }
         final AddOperationsToChain hook = fromJson(bytes);
 
@@ -301,7 +301,7 @@ public class AddOperationsToChainTest extends GraphHookTest<AddOperationsToChain
     }
 
     public void assertClonedOperations(final Map<String, List<Operation>> after1, final Map<String, List<Operation>> after2) {
-        for (Map.Entry<String, List<Operation>> entry1 : after1.entrySet()) {
+        for (final Map.Entry<String, List<Operation>> entry1 : after1.entrySet()) {
             final List<Operation> ops1 = entry1.getValue();
             final List<Operation> ops2 = after2.get(entry1.getKey());
             assertClonedOperations(ops1, ops2);

@@ -143,7 +143,7 @@ public class AccumuloStore extends Store {
      * @throws StoreException the store could not be initialised.
      */
     public void preInitialise(final String graphId, final Schema schema, final StoreProperties properties) throws StoreException {
-        final String deprecatedTableName = ((AccumuloProperties) properties).getTable();
+        final String deprecatedTableName = getTableName();
         if (null == graphId && null != deprecatedTableName) {
             // Deprecated
             super.initialise(deprecatedTableName, schema, properties);
