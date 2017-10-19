@@ -16,15 +16,17 @@
 
 package uk.gov.gchq.gaffer.operation.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
+import uk.gov.gchq.gaffer.commonutil.JsonAssert;
+import uk.gov.gchq.gaffer.commonutil.StringUtil;
 import uk.gov.gchq.gaffer.commonutil.TestGroups;
 import uk.gov.gchq.gaffer.commonutil.TestPropertyNames;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.View;
 import uk.gov.gchq.gaffer.data.elementdefinition.view.ViewElementDefinition;
+import uk.gov.gchq.gaffer.exception.SerialisationException;
+import uk.gov.gchq.gaffer.jsonserialisation.JSONSerialiser;
 import uk.gov.gchq.gaffer.operation.OperationTest;
 import uk.gov.gchq.gaffer.operation.data.EntitySeed;
 import uk.gov.gchq.gaffer.operation.impl.get.GetElements;
@@ -38,7 +40,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
-import static uk.gov.gchq.gaffer.jsonserialisation.JSONSerialiser.createDefaultMapper;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class PathTest extends OperationTest<Path> {
 
@@ -78,12 +81,11 @@ public class PathTest extends OperationTest<Path> {
     }
 
     @Test
-    public void shouldSerialiseToJson() throws JsonProcessingException {
+    public void shouldJsonSerialiseAndDeserialise() {
         // Given
         final Path path = new Path.Builder()
                 .input(new EntitySeed("1"))
                 .operations(new GetElements.Builder()
-                        .input(new EntitySeed("1"))
                         .view(new View.Builder()
                                 .edge(TestGroups.EDGE, new ViewElementDefinition.Builder()
                                         .properties(TestPropertyNames.COUNT)
@@ -93,11 +95,121 @@ public class PathTest extends OperationTest<Path> {
                 .build();
 
         // When
-        final ObjectMapper mapper = createDefaultMapper();
-        final String jsonString = mapper.writeValueAsString(path);
+        final byte[] json = toJson(path);
+        final Path deserialisedObj = fromJson(json);
 
         // Then
-        System.out.println(jsonString);
+        JsonAssert.assertEquals(StringUtil.toBytes(String.format("{%n" +
+                "  \"class\" : \"uk.gov.gchq.gaffer.operation.impl.Path\",%n" +
+                "  \"operations\" : [ {%n" +
+                "    \"view\" : {%n" +
+                "      \"edges\" : {%n" +
+                "        \"BasicEdge\" : {%n" +
+                "          \"properties\" : [ \"count\" ]%n" +
+                "        }%n" +
+                "      },%n" +
+                "      \"entities\" : { }%n" +
+                "    }%n" +
+                "  } ],%n" +
+                "  \"input\" : [ {%n" +
+                "    \"class\" : \"uk.gov.gchq.gaffer.operation.data.EntitySeed\",%n" +
+                "    \"vertex\" : \"1\"%n" +
+                "  } ]%n" +
+                "}")), json);
+        assertEquals(path.getInput(), deserialisedObj.getInput());
+        try {
+            JsonAssert.assertEquals(JSONSerialiser.serialise(path.getOperations()), JSONSerialiser.serialise(deserialisedObj.getOperations()));
+        } catch (final SerialisationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void shouldJsonDeserialiseWithoutGetElementsClassName() {
+        // Given
+        final byte[] json = StringUtil.toBytes(String.format("{%n" +
+                "  \"class\" : \"uk.gov.gchq.gaffer.operation.impl.Path\",%n" +
+                "  \"operations\" : [ {%n" +
+                "    \"view\" : {%n" +
+                "      \"edges\" : {%n" +
+                "        \"BasicEdge\" : {%n" +
+                "          \"properties\" : [ \"count\" ]%n" +
+                "        }%n" +
+                "      },%n" +
+                "      \"entities\" : { }%n" +
+                "    }%n" +
+                "  } ],%n" +
+                "  \"input\" : [ {%n" +
+                "    \"class\" : \"uk.gov.gchq.gaffer.operation.data.EntitySeed\",%n" +
+                "    \"vertex\" : \"1\"%n" +
+                "  } ]%n" +
+                "}"));
+
+        // When
+        final Path deserialisedObj = fromJson(json);
+
+        // Then
+        assertEquals(GetElements.class, deserialisedObj.getOperations().get(0).getClass());
+    }
+
+    @Test
+    public void shouldJsonDeserialiseWithGetElementsClassName() {
+        // Given
+        final byte[] json = StringUtil.toBytes(String.format("{%n" +
+                "  \"class\" : \"uk.gov.gchq.gaffer.operation.impl.Path\",%n" +
+                "  \"operations\" : [ {%n" +
+                "    \"class\" : \"uk.gov.gchq.gaffer.operation.impl.get.GetElements\",%n" +
+                "    \"view\" : {%n" +
+                "      \"edges\" : {%n" +
+                "        \"BasicEdge\" : {%n" +
+                "          \"properties\" : [ \"count\" ]%n" +
+                "        }%n" +
+                "      },%n" +
+                "      \"entities\" : { }%n" +
+                "    }%n" +
+                "  } ],%n" +
+                "  \"input\" : [ {%n" +
+                "    \"class\" : \"uk.gov.gchq.gaffer.operation.data.EntitySeed\",%n" +
+                "    \"vertex\" : \"1\"%n" +
+                "  } ]%n" +
+                "}"));
+
+        // When
+        final Path deserialisedObj = fromJson(json);
+
+        // Then
+        assertEquals(GetElements.class, deserialisedObj.getOperations().get(0).getClass());
+    }
+
+    @Test
+    public void shouldThrowExceptionIfDeserialiedWithInvalidOperationClass() {
+        // Given
+        final byte[] json = StringUtil.toBytes(String.format("{%n" +
+                "  \"class\" : \"uk.gov.gchq.gaffer.operation.impl.Path\",%n" +
+                "  \"operations\" : [ {%n" +
+                "    \"class\" : \"uk.gov.gchq.gaffer.operation.impl.get.GetAdjacentIds\",%n" +
+                "    \"view\" : {%n" +
+                "      \"edges\" : {%n" +
+                "        \"BasicEdge\" : {%n" +
+                "          \"properties\" : [ \"count\" ]%n" +
+                "        }%n" +
+                "      },%n" +
+                "      \"entities\" : { }%n" +
+                "    }%n" +
+                "  } ],%n" +
+                "  \"input\" : [ {%n" +
+                "    \"class\" : \"uk.gov.gchq.gaffer.operation.data.EntitySeed\",%n" +
+                "    \"vertex\" : \"1\"%n" +
+                "  } ]%n" +
+                "}"));
+
+        // When / Then
+        try {
+            fromJson(json);
+            fail("Exception expected");
+        } catch(final Exception e) {
+            assertTrue(e.getMessage().contains("Invalid class"));
+        }
     }
 
     @Override

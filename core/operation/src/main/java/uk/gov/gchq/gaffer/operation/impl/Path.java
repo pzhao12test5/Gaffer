@@ -16,6 +16,8 @@
 
 package uk.gov.gchq.gaffer.operation.impl;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.exception.CloneFailedException;
@@ -24,10 +26,12 @@ import uk.gov.gchq.gaffer.data.element.Edge;
 import uk.gov.gchq.gaffer.operation.Operation;
 import uk.gov.gchq.gaffer.operation.data.EntitySeed;
 import uk.gov.gchq.gaffer.operation.impl.get.GetElements;
+import uk.gov.gchq.gaffer.operation.impl.get.GetElementsDAO;
 import uk.gov.gchq.gaffer.operation.io.InputOutput;
 import uk.gov.gchq.gaffer.operation.io.MultiInput;
 import uk.gov.gchq.gaffer.operation.serialisation.TypeReferenceImpl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +64,21 @@ public class Path implements
 
     public void setOperations(final List<GetElements> operations) {
         this.operations = operations;
+    }
+
+    @JsonGetter("operations")
+    List<GetElementsDAO> getOperationsForJson() {
+        return (List) operations;
+    }
+
+    @JsonSetter("operations")
+    public void setOperationsFromJson(final List<GetElementsDAO> operations) {
+        if (null == operations) {
+            this.operations = null;
+        } else {
+            this.operations = new ArrayList<>(operations.size());
+            operations.forEach(op -> this.operations.add(op.shallowClone()));
+        }
     }
 
     @Override
