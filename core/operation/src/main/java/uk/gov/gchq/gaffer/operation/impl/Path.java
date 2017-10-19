@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.exception.CloneFailedException;
 
+import uk.gov.gchq.gaffer.commonutil.Required;
 import uk.gov.gchq.gaffer.data.element.Edge;
 import uk.gov.gchq.gaffer.operation.Operation;
 import uk.gov.gchq.gaffer.operation.data.EntitySeed;
@@ -30,6 +31,7 @@ import uk.gov.gchq.gaffer.operation.impl.get.GetElementsDAO;
 import uk.gov.gchq.gaffer.operation.io.InputOutput;
 import uk.gov.gchq.gaffer.operation.io.MultiInput;
 import uk.gov.gchq.gaffer.operation.serialisation.TypeReferenceImpl;
+import uk.gov.gchq.koryphe.ValidationResult;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,9 +46,30 @@ public class Path implements
         InputOutput<Iterable<? extends EntitySeed>, Iterable<Iterable<Edge>>>,
         MultiInput<EntitySeed> {
 
+    @Required
     private List<GetElements> operations;
     private Iterable<? extends EntitySeed> input;
     private Map<String, String> options;
+
+    @Override
+    public ValidationResult validate() {
+        final ValidationResult result = InputOutput.super.validate();
+        if (null == operations || operations.isEmpty()) {
+            result.addError("operations are required");
+        } else {
+            for (final GetElements op : operations) {
+                if (null != op.getInput()) {
+                    result.addError("The supplied operations should not have an input. The input should be set on the outer " + getClass().getSimpleName() + " operation.");
+                }
+
+                if (null != op.getView() && op.getView().hasEntities()) {
+                    result.addError("The supplied operation views should not contain any Entities");
+                }
+            }
+        }
+
+        return result;
+    }
 
     @Override
     public Iterable<? extends EntitySeed> getInput() {

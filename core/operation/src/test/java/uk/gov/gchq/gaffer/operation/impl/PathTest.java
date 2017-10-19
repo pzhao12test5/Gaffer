@@ -17,6 +17,7 @@
 package uk.gov.gchq.gaffer.operation.impl;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Test;
 
 import uk.gov.gchq.gaffer.commonutil.JsonAssert;
@@ -30,7 +31,9 @@ import uk.gov.gchq.gaffer.jsonserialisation.JSONSerialiser;
 import uk.gov.gchq.gaffer.operation.OperationTest;
 import uk.gov.gchq.gaffer.operation.data.EntitySeed;
 import uk.gov.gchq.gaffer.operation.impl.get.GetElements;
+import uk.gov.gchq.koryphe.ValidationResult;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -38,6 +41,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -207,13 +211,72 @@ public class PathTest extends OperationTest<Path> {
         try {
             fromJson(json);
             fail("Exception expected");
-        } catch(final Exception e) {
+        } catch (final Exception e) {
             assertTrue(e.getMessage().contains("Invalid class"));
         }
     }
 
+    @Test
+    public void shouldFailValidationWhenNoOperations() {
+        // Given
+        final Path op = new Path.Builder()
+                .operations(Collections.emptyList())
+                .build();
+
+        // When
+        final ValidationResult result = op.validate();
+
+        // Then
+        assertFalse(result.isValid());
+        assertEquals(Sets.newHashSet("operations are required"), result.getErrors());
+    }
+
+    @Test
+    public void shouldFailValidationWhenOperationsHaveAnInput() {
+        // Given
+        final Path op = new Path.Builder()
+                .operations(
+                        new GetElements.Builder()
+                                .input(new EntitySeed("vertex1"))
+                                .build())
+                .build();
+
+        // When
+        final ValidationResult result = op.validate();
+
+        // Then
+        assertFalse(result.isValid());
+        assertEquals(Sets.newHashSet(
+                "The supplied operations should not have an input. The input should be set on the outer " + Path.class.getSimpleName() + " operation."
+        ), result.getErrors());
+    }
+
+    @Test
+    public void shouldFailValidationWhenOperationsHaveEntitiesInView() {
+        // Given
+        final Path op = new Path.Builder()
+                .operations(
+                        new GetElements.Builder()
+                                .view(new View.Builder()
+                                        .entity(TestGroups.ENTITY)
+                                        .build())
+                                .build())
+                .build();
+
+        // When
+        final ValidationResult result = op.validate();
+
+        // Then
+        assertFalse(result.isValid());
+        assertEquals(Sets.newHashSet(
+                "The supplied operation views should not contain any Entities"
+        ), result.getErrors());
+    }
+
     @Override
     protected Path getTestObject() {
-        return new Path();
+        return new Path.Builder()
+                .operations(new GetElements())
+                .build();
     }
 }
