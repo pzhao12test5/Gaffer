@@ -19,13 +19,15 @@ package uk.gov.gchq.gaffer.store.operation.handler;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import uk.gov.gchq.gaffer.commonutil.Trampoline;
 import uk.gov.gchq.gaffer.commonutil.iterable.CloseableIterable;
 import uk.gov.gchq.gaffer.commonutil.iterable.EmptyClosableIterable;
 import uk.gov.gchq.gaffer.commonutil.iterable.LimitedCloseableIterable;
 import uk.gov.gchq.gaffer.commonutil.stream.Streams;
 import uk.gov.gchq.gaffer.data.element.Edge;
 import uk.gov.gchq.gaffer.data.element.Element;
-import uk.gov.gchq.gaffer.data.graph.AdjacencyList;
+import uk.gov.gchq.gaffer.data.graph.AdjacencyMap;
+import uk.gov.gchq.gaffer.data.graph.PrunedNDimensionalAdjacencyMap;
 import uk.gov.gchq.gaffer.data.graph.Walk;
 import uk.gov.gchq.gaffer.operation.OperationChain;
 import uk.gov.gchq.gaffer.operation.OperationException;
@@ -40,6 +42,7 @@ import uk.gov.gchq.gaffer.store.Store;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -70,7 +73,8 @@ public class GetWalksHandler implements OutputOperationHandler<GetWalks, Iterabl
 
         hops = getWalks.getOperations().size();
 
-        final List<AdjacencyList<Object, Edge>> adjacencyLists = new ArrayList<>();
+        final List<AdjacencyMap<Object, Edge>> adjacencyMaps = new ArrayList<>();
+        final PrunedNDimensionalAdjacencyMap<Object, Edge> prunedAdjacencyMap = new PrunedNDimensionalAdjacencyMap<>();
 
         List<Edge> results = null;
 
@@ -95,28 +99,59 @@ public class GetWalksHandler implements OutputOperationHandler<GetWalks, Iterabl
                 results = getLimitedResults(store, context, getWalks, opChain);
             }
 
-            final AdjacencyList<Object, Edge> adjacencyList = new AdjacencyList<>();
+            final AdjacencyMap<Object, Edge> adjacencyMap = new AdjacencyMap<>();
 
-            // Store results in an AdjacencyList
+            // Store results in an AdjacencyMap
             for (final Edge e : results) {
-                adjacencyList.put(e.getMatchedVertexValue(), e.getAdjacentMatchedVertexValue(), e);
+                adjacencyMap.put(e.getMatchedVertexValue(), e.getAdjacentMatchedVertexValue(), e);
             }
 
-            adjacencyLists.add(adjacencyList);
+            prunedAdjacencyMap.add(adjacencyMap);
+            adjacencyMaps.add(adjacencyMap);
         }
 
         // Track/recombine the edge objects and convert to return type
         return Streams.toStream(getWalks.getInput())
-                .map(seed -> walk(seed.getVertex(), null, adjacencyLists, new LinkedList<>()))
+//                .map(seed -> walk(seed.getVertex(), null, adjacencyMaps, new LinkedList<>()))
+                .map(seed -> walkWithPruned(seed.getVertex(), null, prunedAdjacencyMap, new LinkedList<>()))
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
     }
 
-    private List<Walk> walk(final Object curr, final Object prev, final List<AdjacencyList<Object, Edge>> adjacencyLists, final LinkedList<Set<Edge>> queue) {
+    private List<Walk> walk(final Object curr, final Object prev, final List<AdjacencyMap<Object, Edge>> adjacencyMaps, final LinkedList<Set<Edge>> queue) {
+        final List<Walk> walks = new ArrayList<>();
+
+        final int hopCount = queue.size();
+
+        if (null != prev && hops != hopCount) {
+            queue.offer(adjacencyMaps.get(hopCount).get(prev, curr));
+        }
+
+        if (hops == hopCount) {
+            final Walk.Builder builder = new Walk.Builder();
+            for (final Set<Edge> edgeSet : queue) {
+                builder.edges(edgeSet);
+            }
+            final Walk walk = builder.build();
+            walks.add(walk);
+        } else {
+            for (final Object obj : adjacencyMaps.get(hopCount).getDestinations(curr)) {
+                walks.addAll(walk(obj, curr, adjacencyMaps, queue));
+            }
+        }
+
+        if (!queue.isEmpty()) {
+            queue.pollLast();
+        }
+
+        return walks;
+    }
+
+    private List<Walk> walkWithPruned(final Object curr, final Object prev, final PrunedNDimensionalAdjacencyMap<Object, Edge> adjacencyMaps, final LinkedList<Set<Edge>> queue) {
         final List<Walk> walks = new ArrayList<>();
 
         if (null != prev && hops != queue.size()) {
-            queue.offer(adjacencyLists.get(queue.size()).get(prev, curr));
+            queue.offer(adjacencyMaps.get(queue.size()).get(prev, curr));
         }
 
         if (hops == queue.size()) {
@@ -127,8 +162,8 @@ public class GetWalksHandler implements OutputOperationHandler<GetWalks, Iterabl
             final Walk walk = builder.build();
             walks.add(walk);
         } else {
-            for (final Object obj : adjacencyLists.get(queue.size()).getDestinations(curr)) {
-                walks.addAll(walk(obj, curr, adjacencyLists, queue));
+            for (final Object obj : adjacencyMaps.get(queue.size()).getDestinations(curr)) {
+                walks.addAll(walkWithPruned(obj, curr, adjacencyMaps, queue));
             }
         }
 
