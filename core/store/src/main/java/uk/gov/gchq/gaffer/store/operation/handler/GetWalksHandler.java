@@ -20,10 +20,11 @@ import com.google.common.collect.Lists;
 
 import uk.gov.gchq.gaffer.commonutil.iterable.CloseableIterable;
 import uk.gov.gchq.gaffer.commonutil.iterable.EmptyClosableIterable;
+import uk.gov.gchq.gaffer.commonutil.pair.Pair;
 import uk.gov.gchq.gaffer.commonutil.stream.Streams;
 import uk.gov.gchq.gaffer.data.element.Edge;
 import uk.gov.gchq.gaffer.data.element.Element;
-import uk.gov.gchq.gaffer.data.elementdefinition.view.View;
+import uk.gov.gchq.gaffer.data.element.Entity;
 import uk.gov.gchq.gaffer.data.graph.AdjacencyMap;
 import uk.gov.gchq.gaffer.data.graph.Walk;
 import uk.gov.gchq.gaffer.operation.OperationChain;
@@ -38,19 +39,14 @@ import uk.gov.gchq.gaffer.store.Context;
 import uk.gov.gchq.gaffer.store.Store;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * <p>
- * An operation handler for {@link GetWalks} operations.
- * </p>
- * <p>
- * Currently the handler only supports creating {@link Walk}s which contain
- * {@link Edge}s.
+ * <p> An operation handler for {@link GetWalks} operations. </p> <p> Currently
+ * the handler only supports creating {@link Walk}s which contain {@link Edge}s.
  * </p>
  */
 public class GetWalksHandler implements OutputOperationHandler<GetWalks, Iterable<Walk>> {
@@ -84,7 +80,7 @@ public class GetWalksHandler implements OutputOperationHandler<GetWalks, Iterabl
             throw new OperationException("GetWalks operation contains " + hops + " hops. The maximum number of hops is: " + maxHops);
         }
 
-        final List<AdjacencyMap<Object, Edge>> adjacencyMaps = new ArrayList<>();
+        final List<AdjacencyMap<Object, Edge, Entity>> adjacencyMaps = new ArrayList<>();
 
         List<Edge> results = null;
 
@@ -93,9 +89,15 @@ public class GetWalksHandler implements OutputOperationHandler<GetWalks, Iterabl
             results = executeGetElements(getElements, getWalks, context, store, results);
 
             // Store results in an AdjacencyMap
-            final AdjacencyMap<Object, Edge> adjacencyMap = new AdjacencyMap<>();
-            for (final Edge e : results) {
-                adjacencyMap.put(e.getMatchedVertexValue(), e.getAdjacentMatchedVertexValue(), e);
+            final AdjacencyMap<Object, Edge, Entity> adjacencyMap = new AdjacencyMap<>();
+            for (final Element e : results) {
+                if (e instanceof Edge) {
+                    final Edge edge = (Edge) e;
+                    adjacencyMap.put(edge.getMatchedVertexValue(), edge.getAdjacentMatchedVertexValue(), edge);
+                } else {
+                    final Entity entity = (Entity) e;
+                    adjacencyMap.put(entity.getVertex(), entity);
+                }
             }
 
             adjacencyMaps.add(adjacencyMap);
@@ -121,10 +123,6 @@ public class GetWalksHandler implements OutputOperationHandler<GetWalks, Iterabl
                                           final Context context,
                                           final Store store,
                                           final List<Edge> results) throws OperationException {
-        getElements.setView(new View.Builder()
-                .merge(getElements.getView())
-                .entities(Collections.emptyMap())
-                .build());
 
         final OperationChain.OutputBuilder<CloseableIterable<? extends Element>> opChainBuilder;
         if (null == results) {
@@ -159,17 +157,23 @@ public class GetWalksHandler implements OutputOperationHandler<GetWalks, Iterabl
         return Lists.newArrayList((Iterable<Edge>) store.execute(opChain, context));
     }
 
-    private List<Walk> walk(final Object curr, final Object prev, final List<AdjacencyMap<Object, Edge>> adjacencyMaps, final LinkedList<Set<Edge>> queue) {
+    private List<Walk> walk(final Object curr, final Object prev, final List<AdjacencyMap<Object, Edge, Entity>> adjacencyMaps, final LinkedList<Pair<Set<Edge>, Set<Entity>>> queue) {
         final List<Walk> walks = new ArrayList<>();
 
         if (null != prev && hops != queue.size()) { // if the walk is not at the maximum length
-            queue.offer(adjacencyMaps.get(queue.size()).get(prev, curr));
+            final Set<Edge> edges = adjacencyMaps.get(queue.size()).get(prev, curr);
+            final Set<Entity> entities = adjacencyMaps.get(queue.size()).getEntities(prev);
+
+            final Pair<Set<Edge>, Set<Entity>> pair = new Pair<>(edges, entities);
+
+            queue.offer(pair);
         }
 
         if (hops == queue.size()) { // if the walk is at the maximum length
             final Walk.Builder builder = new Walk.Builder();
-            for (final Set<Edge> edgeSet : queue) {
-                builder.edges(edgeSet);
+            for (final Pair<Set<Edge>, Set<Entity>> pair : queue) {
+                pair.getSecond().forEach(e -> builder.entity(e));
+                builder.edges(pair.getFirst());
             }
             final Walk walk = builder.build();
             walks.add(walk);

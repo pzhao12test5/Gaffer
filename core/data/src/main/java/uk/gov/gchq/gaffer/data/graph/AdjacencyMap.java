@@ -19,6 +19,9 @@ package uk.gov.gchq.gaffer.data.graph;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Sets;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -28,9 +31,10 @@ import java.util.Set;
  * @param <T> the type of object representing the vertices
  * @param <U> the type of object representing the edge
  */
-public class AdjacencyMap<T, U> {
+public class AdjacencyMap<T, U, V> {
 
-    private final HashBasedTable<T, T, Set<U>> graph = HashBasedTable.create();
+    private final HashBasedTable<T, T, Set<U>> edgeGraph = HashBasedTable.create();
+    private final Map<T, Set<V>> entityMap = new HashMap<>();
 
     /**
      * Get the entries in the AdjacencyMap which match the provided source and
@@ -43,7 +47,7 @@ public class AdjacencyMap<T, U> {
      * vertices
      */
     public Set<U> get(final T source, final T destination) {
-        return graph.get(source, destination);
+        return edgeGraph.get(source, destination);
     }
 
     /**
@@ -57,7 +61,7 @@ public class AdjacencyMap<T, U> {
      * @return the added edge objects
      */
     public Set<U> put(final T source, final T destination, final Set<U> set) {
-        return graph.put(source, destination, set);
+        return edgeGraph.put(source, destination, set);
     }
 
     /**
@@ -71,12 +75,27 @@ public class AdjacencyMap<T, U> {
      * source and destination vertices
      */
     public Set<U> put(final T source, final T destination, final U edge) {
-        final Set<U> existing = graph.get(source, destination);
+        final Set<U> existing = edgeGraph.get(source, destination);
         if (null == existing) {
             final Set<U> set = Sets.newHashSet(edge);
-            return graph.put(source, destination, set);
+            return edgeGraph.put(source, destination, set);
         } else {
             existing.add(edge);
+            return existing;
+        }
+    }
+
+    public Set<V> put(final T vertex, final Set<V> entities) {
+        return entityMap.put(vertex, entities);
+    }
+
+    public Set<V> put(final T vertex, final V entity) {
+        final Set<V> existing = entityMap.get(vertex);
+        if (null == existing) {
+            final Set<V> set = Sets.newHashSet(entity);
+            return entityMap.put(vertex, set);
+        } else {
+            existing.add(entity);
             return existing;
         }
     }
@@ -90,7 +109,7 @@ public class AdjacencyMap<T, U> {
      * @return a {@link Set} of the destination vertices
      */
     public Set<T> getDestinations(final T source) {
-        return graph.row(source).keySet();
+        return edgeGraph.row(source).keySet();
     }
 
     /**
@@ -102,7 +121,15 @@ public class AdjacencyMap<T, U> {
      * @return a {@link Set} of the source vertices
      */
     public Set<T> getSources(final T destination) {
-        return graph.column(destination).keySet();
+        return edgeGraph.column(destination).keySet();
     }
 
+    public Set<V> getEntities(final T vertex) {
+        final Set<V> set = entityMap.get(vertex);
+        if (null != set) {
+            return set;
+        } else {
+            return Collections.emptySet();
+        }
+    }
 }
